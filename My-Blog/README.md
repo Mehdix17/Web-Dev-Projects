@@ -2,6 +2,8 @@
 
 A minimal, responsive blog web application built with **Flask**, styled with **Bootstrap**, and deployed on **Vercel**. Users can read posts, submit a contact form, and explore articles rendered dynamically from JSON or a backend source.
 
+Link : https://my-blog-sigma-pied.vercel.app/
+
 ---
 
 ## 🚀 Features
