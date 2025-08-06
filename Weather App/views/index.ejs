@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      charset="UTF-8"
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Weather App</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link
+      rel="stylesheet"
+      href="/node_modules/@fortawesome/fontawesome-free/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1>🌤️ Weather App</h1>
+
+      <form action="/weather" method="GET">
+        <input type="text" name="city" placeholder="Enter city name" required />
+        <button type="submit">Get Weather</button>
+      </form>
+
+      <% if (error) { %>
+      <p class="error"><%= error %></p>
+      <% } %> <% if (weatherData) { %>
+      <div class="weather-box">
+        <h2><%= weatherData.city %></h2>
+        <div class="weather-icon">
+          <i class="<%= weatherData.iconClass %>"></i>
+        </div>
+        <p>
+          <i class="fas fa-thermometer-half"></i>
+          <strong>Temperature :</strong> <%= weatherData.temp %> °C
+        </p>
+        <p>
+          <i class="fas fa-info-circle"></i> <strong>Description :</strong> <%=
+          weatherData.description %>
+        </p>
+        <p>
+          <i class="fas fa-wind"></i> <strong>Wind Speed :</strong> <%=
+          weatherData.windSpeed %> m/s
+        </p>
+        <p>
+          <i class="fas fa-tint"></i> <strong>Humidity :</strong> <%=
+          weatherData.humidity %>%
+        </p>
+      </div>
+      <% } %>
+    </div>
+  </body>
+</html>

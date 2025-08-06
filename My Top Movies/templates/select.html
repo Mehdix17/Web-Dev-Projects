@@ -1,0 +1,45 @@
+{% extends 'base.html' %} {% block title %}Select Movie{% endblock %} 
+{% block content %}
+<a href="{{ url_for('home') }}">
+  <i class="bi bi-house-door primary" style="font-size: 2rem; margin: 2rem"></i>
+</a>
+<h1 class="heading">Select a Movie</h1>
+<div class="container g-4">
+  {% for movie in movies %}
+    <div class="card" style="min-height: 550px">
+      {% if movie['backdrop_path']: %}
+      <img
+        src="https://image.tmdb.org/t/p/w500{{ movie['backdrop_path'] }}"
+        class="card-img-top"
+      />
+      {% else: %}
+      <img
+      src="{{ url_for('static', filename='img/placeholder.jpg') }}"
+      class="card-img-top"
+      />
+      {% endif %}
+      <div class="card-body">
+        <h5 class="title text-center" style="max-height: 60px; overflow: hidden; text-overflow: ellipsis;">
+          {{ movie['title'] }} <span class="release_date">({{ movie['release_date'][:4] }})</span>
+        </h5>
+        <h6 class="text-center rating" style="height: 30px">
+          {{ movie["vote_average"] }} <i class="fas fa-star star"></i>
+        </h6>
+        <p class="card-text" style="height: 135px; overflow: auto; text-overflow: ellipsis; display: -webkit-box; -webkit-box-orient: vertical; margin-bottom: 1rem;">
+          {{ movie['overview'] }}
+        </p>
+        <form action="{{ url_for('select') }}" method="POST">
+          <input type="hidden" name="title" value="{{ movie['title'] }}">
+          <input type="hidden" name="year" value="{{ movie['release_date'][:4] }}">
+          <input type="hidden" name="overview" value="{{ movie['overview'] }}">
+          <input type="hidden" name="img_url" value="https://image.tmdb.org/t/p/w500{{ movie['backdrop_path'] }}">
+          <input type="hidden" name="rating" value="{{ movie['vote_average'] }}">
+          <button type="submit" class="btn btn-primary mt-2 w-100">Select</button>
+        </form>      
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+  {% endblock %}
+</div>

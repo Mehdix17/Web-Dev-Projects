@@ -1,0 +1,154 @@
+/* General reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #6dd5ed, #2193b0);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  color: #333;
+}
+
+.container {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+h1 {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin-bottom: 30px;
+}
+
+form input[type="text"] {
+  padding: 12px 15px;
+  width: 100%;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  outline: none;
+}
+
+form button {
+  padding: 12px 25px;
+  background: linear-gradient(to right, #6dd5ed, #2193b0);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: background 0.3s ease;
+}
+
+form button:hover {
+  background: linear-gradient(to right, #2193b0, #6dd5ed);
+}
+
+.error {
+  color: #e74c3c;
+  margin-top: 20px;
+  font-size: 1rem;
+}
+
+.weather-box {
+  margin-top: 30px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  animation: slideUp 0.5s ease-in-out;
+}
+
+.weather-box h2 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.weather-box p {
+  font-size: 1.1rem;
+  margin: 8px 0;
+}
+
+.weather-box p i {
+  margin-right: 8px;
+  color: #2193b0;
+}
+
+.weather-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .container {
+    padding: 30px; /* Adjust padding for smaller screens */
+    max-width: 95%; /* Allow it to take up more width */
+    border-radius: 10px; /* Slightly smaller border-radius */
+  }
+
+  h1 {
+    font-size: 2.2rem; /* Slightly smaller header */
+    margin-bottom: 25px;
+  }
+
+  .input-group {
+    margin-bottom: 15px; /* Adjust spacing */
+  }
+
+  .input-group input[type="text"],
+  .input-group button,
+  .weather-box p {
+    font-size: 1rem;
+  }
+
+  .weather-box {
+    padding: 25px; /* Adjust padding for weather box */
+    margin-top: 25px;
+    border-radius: 10px; /* Slightly smaller border-radius */
+  }
+
+  .weather-box h2 {
+    font-size: 1.8rem; /* Slightly smaller city name */
+    margin-bottom: 12px;
+  }
+
+  .weather-icon img {
+    width: 80px; /* Adjust icon size for smaller screens */
+  }
+}
