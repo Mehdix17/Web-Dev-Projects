@@ -1,8 +1,8 @@
 # 🎬 My Top Movies
 
-Website Link : https://my-top-movies-theta.vercel.app/ 
-
 A responsive Flask web application to manage your favorite movies.
+
+Link : https://my-top-movies-theta.vercel.app/
 
 Search for movies via the [TMDb API](https://developer.themoviedb.org/), add them manually, edit, delete, or reset movies. Built with PostgreSQL, Bootstrap 5, and Flask.
 
