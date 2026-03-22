@@ -24,7 +24,8 @@ export function PresentationViewer({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pdfError, setPdfError] = useState("");
 
-  const hasPdf = Boolean(pdfUrl);
+  const hasSlides = fallbackSlides.length > 0;
+  const hasPdf = !hasSlides && Boolean(pdfUrl);
   const slideCount = hasPdf ? (numPages ?? 0) : fallbackSlides.length;
   const pageIndexes = useMemo(
     () => Array.from({ length: slideCount }, (_, index) => index),

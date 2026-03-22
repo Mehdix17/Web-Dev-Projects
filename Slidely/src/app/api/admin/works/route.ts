@@ -52,6 +52,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!normalized.slides || normalized.slides.length === 0) {
+      return NextResponse.json(
+        { error: "Slide images are required. Upload a PDF to generate slides." },
+        { status: 400 },
+      );
+    }
+
     if (works.some((work) => work.slug === normalized.slug)) {
       return NextResponse.json(
         { error: "Slug already exists. Use another slug or title." },

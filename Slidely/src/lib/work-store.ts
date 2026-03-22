@@ -101,7 +101,9 @@ export function normalizeWorkPayload(
       payload.summary ||
       "Presentation crafted with strategic storytelling and visual clarity."
     ).trim(),
-    slides: undefined,
+    slides: Array.isArray(payload.slides)
+      ? normalizeSlides(payload.slides)
+      : undefined,
   };
 }
 

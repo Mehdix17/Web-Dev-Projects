@@ -6,6 +6,8 @@ import type { ManagedWork } from "@/lib/work-types";
 import { workCategories } from "@/lib/work-types";
 
 const ADMIN_PAGE_SIZE = 8;
+const MAX_PDF_SLIDE_PAGES = 24;
+const PDF_RENDER_SCALE = 1.25;
 
 type WorkFormState = {
   slug: string;
@@ -16,6 +18,7 @@ type WorkFormState = {
   role: string;
   thumbnailUrl: string;
   pdfUrl: string;
+  slideUrls: string[];
   summary: string;
 };
 
@@ -33,6 +36,7 @@ const emptyForm: WorkFormState = {
   role: "Presentation Designer",
   thumbnailUrl: "",
   pdfUrl: "",
+  slideUrls: [],
   summary: "",
 };
 
@@ -46,6 +50,7 @@ function toForm(work: ManagedWork): WorkFormState {
     role: work.role,
     thumbnailUrl: work.thumbnail,
     pdfUrl: work.pdfUrl,
+    slideUrls: work.slides || [],
     summary: work.summary,
   };
 }
@@ -92,7 +97,7 @@ export default function AdminPage() {
       works.filter(
         (work) =>
           !work.thumbnail?.trim() ||
-          !work.pdfUrl?.trim() ||
+          !(work.slides && work.slides.length > 0) ||
           !work.summary?.trim() ||
           !work.client?.trim(),
       ).length,
@@ -237,7 +242,10 @@ export default function AdminPage() {
     setForm(emptyForm);
   };
 
-  const uploadAsset = async (file: File, kind: "thumbnail" | "deck") => {
+  const uploadAsset = async (
+    file: File,
+    kind: "thumbnail" | "deck" | "slide",
+  ) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("kind", kind);
@@ -270,6 +278,64 @@ export default function AdminPage() {
     return payload.url;
   };
 
+  const canvasToJpegBlob = (canvas: HTMLCanvasElement, quality = 0.86) =>
+    new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Unable to render a slide image from this PDF."));
+            return;
+          }
+          resolve(blob);
+        },
+        "image/jpeg",
+        quality,
+      );
+    });
+
+  const convertPdfToSlideImages = async (file: File) => {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc =
+      `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+
+    const bytes = await file.arrayBuffer();
+    const loadingTask = pdfjs.getDocument({ data: bytes });
+    const pdf = await loadingTask.promise;
+
+    if (pdf.numPages > MAX_PDF_SLIDE_PAGES) {
+      throw new Error(
+        `This PDF has ${pdf.numPages} pages. Maximum supported is ${MAX_PDF_SLIDE_PAGES} pages.`,
+      );
+    }
+
+    const files: File[] = [];
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const page = await pdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: PDF_RENDER_SCALE });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("Unable to create canvas context for PDF conversion.");
+      }
+
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+
+      await page.render({ canvasContext: context, viewport }).promise;
+      const blob = await canvasToJpegBlob(canvas);
+
+      files.push(
+        new File([blob], `slide-${pageNumber}.jpg`, {
+          type: "image/jpeg",
+        }),
+      );
+    }
+
+    return files;
+  };
+
   const handleThumbnailUpload = async (file?: File) => {
     if (!file) return;
     setFormError("");
@@ -296,8 +362,20 @@ export default function AdminPage() {
 
     try {
       const url = await uploadAsset(file, "deck");
+      const slideFiles = await convertPdfToSlideImages(file);
+      const uploadedSlideUrls: string[] = [];
+
+      for (const slideFile of slideFiles) {
+        const slideUrl = await uploadAsset(slideFile, "slide");
+        uploadedSlideUrls.push(slideUrl);
+      }
+
       handleFormChange("pdfUrl", url);
-      showToast("success", "PDF uploaded successfully.");
+      handleFormChange("slideUrls", uploadedSlideUrls);
+      showToast(
+        "success",
+        `PDF uploaded and converted to ${uploadedSlideUrls.length} slide image(s).`,
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "PDF upload failed";
@@ -322,6 +400,11 @@ export default function AdminPage() {
       return;
     }
 
+    if (form.slideUrls.length === 0) {
+      setFormError("Please upload a PDF and generate slide images.");
+      return;
+    }
+
     setIsSaving(true);
 
     const payload = {
@@ -333,6 +416,7 @@ export default function AdminPage() {
       role: form.role,
       thumbnail: form.thumbnailUrl,
       pdfUrl: form.pdfUrl,
+      slides: form.slideUrls,
       summary: form.summary,
     };
 
@@ -359,7 +443,8 @@ export default function AdminPage() {
 
       if (!response.ok) {
         const message =
-          data?.error || `Unable to save this work (status ${response.status}).`;
+          data?.error ||
+          `Unable to save this work (status ${response.status}).`;
         setFormError(message);
         showToast("error", message);
         return;
@@ -849,9 +934,14 @@ export default function AdminPage() {
                   Uploaded: {form.pdfUrl}
                 </p>
               ) : null}
+              {form.slideUrls.length > 0 ? (
+                <p className="mb-2 rounded-lg border border-[#EAD2FF] bg-[#FCF8FF] px-3 py-2 text-xs text-[#2A0659]/75">
+                  Converted slides: {form.slideUrls.length}
+                </p>
+              ) : null}
               <div className="mt-2 flex items-center gap-2">
                 <label className="rounded-full border border-[#D9B1FF] px-3 py-1.5 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] cursor-pointer">
-                  {isUploadingPdf ? "Uploading..." : "Upload PDF"}
+                  {isUploadingPdf ? "Uploading + converting..." : "Upload PDF"}
                   <input
                     type="file"
                     accept="application/pdf"

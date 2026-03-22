@@ -57,7 +57,9 @@ export async function POST(request: Request) {
     }
 
     const isDeckUpload = kind === "deck";
-    const isValidImageUpload = kind === "thumbnail";
+    const isThumbnailUpload = kind === "thumbnail";
+    const isSlideUpload = kind === "slide";
+    const isImageUpload = isThumbnailUpload || isSlideUpload;
 
     if (isDeckUpload && file.type !== PDF_MIME_TYPE) {
       return NextResponse.json(
@@ -66,16 +68,19 @@ export async function POST(request: Request) {
       );
     }
 
-    if (isValidImageUpload && !allowedImageMimeTypes.has(file.type)) {
+    if (isImageUpload && !allowedImageMimeTypes.has(file.type)) {
       return NextResponse.json(
-        { error: "Invalid file type. Upload a valid image for thumbnails." },
+        {
+          error:
+            "Invalid file type. Upload a valid image for thumbnails or slides.",
+        },
         { status: 400 },
       );
     }
 
-    if (!isDeckUpload && !isValidImageUpload) {
+    if (!isDeckUpload && !isImageUpload) {
       return NextResponse.json(
-        { error: "Invalid upload kind. Use 'thumbnail' or 'deck'." },
+        { error: "Invalid upload kind. Use 'thumbnail', 'slide', or 'deck'." },
         { status: 400 },
       );
     }
