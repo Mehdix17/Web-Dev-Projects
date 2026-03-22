@@ -41,9 +41,9 @@ function hasBlobStorage() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
-function shouldRequestPublicBlobAccess() {
+function getBlobAccessMode(): "public" | "private" {
   const mode = (process.env.BLOB_ACCESS || "public").toLowerCase();
-  return mode !== "private";
+  return mode === "private" ? "private" : "public";
 }
 
 export async function POST(request: Request) {
@@ -104,25 +104,22 @@ export async function POST(request: Request) {
 
     if (hasBlobStorage()) {
       const blobPath = `${relativeDir.replace(/\\/g, "/")}/${fileName}`;
-      const shouldRequestPublicAccess = shouldRequestPublicBlobAccess();
-      const preferredAccess = (
-        shouldRequestPublicAccess ? "public" : "private"
-      ) as unknown as "public";
+      const requestedAccess = getBlobAccessMode();
 
       try {
         const blob = await put(blobPath, file, {
-          access: preferredAccess,
+          access: requestedAccess,
           addRandomSuffix: false,
         });
 
         return NextResponse.json({
           url: blob.url,
-          access: shouldRequestPublicAccess ? "public" : "private",
+          access: requestedAccess,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
         const isPrivateStorePublicAccessMismatch =
-          shouldRequestPublicAccess &&
+          requestedAccess === "public" &&
           message.includes(
             "Cannot use public access on a private store. The store is configured with private access.",
           );
@@ -132,7 +129,7 @@ export async function POST(request: Request) {
         }
 
         const blob = await put(blobPath, file, {
-          access: "private" as unknown as "public",
+          access: "private",
           addRandomSuffix: false,
         });
 
