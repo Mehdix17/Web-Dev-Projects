@@ -16,7 +16,11 @@ function getBlobAccessMode(): "public" | "private" {
   return mode === "private" ? "private" : "public";
 }
 
-async function loadBlob(url: string, request: Request, access: "public" | "private") {
+async function loadBlob(
+  url: string,
+  request: Request,
+  access: "public" | "private",
+) {
   return get(url, {
     access,
     ifNoneMatch: request.headers.get("if-none-match") || undefined,
@@ -77,6 +81,6 @@ export async function GET(request: Request) {
       },
     });
   } catch {
-    return new Response("Unable to load file", { status: 500 });
+    return Response.redirect(blobUrl, 307);
   }
 }
