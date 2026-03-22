@@ -1,4 +1,11 @@
-import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 export const works = pgTable("works", {
   id: serial("id").primaryKey(),
@@ -8,6 +15,7 @@ export const works = pgTable("works", {
   year: integer("year").notNull(),
   client: text("client").notNull(),
   role: text("role").notNull(),
+  featured: boolean("featured").notNull().default(false),
   thumbnail: text("thumbnail").notNull(),
   pdfUrl: text("pdf_url").notNull(),
   summary: text("summary").notNull(),

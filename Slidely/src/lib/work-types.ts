@@ -12,6 +12,7 @@ export interface ManagedWork {
   year: number;
   client: string;
   role: string;
+  featured: boolean;
   thumbnail: string;
   pdfUrl: string;
   summary: string;

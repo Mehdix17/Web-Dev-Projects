@@ -17,6 +17,7 @@ type WorkFormState = {
   year: string;
   client: string;
   role: string;
+  featured: boolean;
   thumbnailUrl: string;
   pdfUrl: string;
   slideUrls: string[];
@@ -35,6 +36,7 @@ const emptyForm: WorkFormState = {
   year: String(new Date().getFullYear()),
   client: "",
   role: "Presentation Designer",
+  featured: false,
   thumbnailUrl: "",
   pdfUrl: "",
   slideUrls: [],
@@ -49,6 +51,7 @@ function toForm(work: ManagedWork): WorkFormState {
     year: String(work.year),
     client: work.client,
     role: work.role,
+    featured: Boolean(work.featured),
     thumbnailUrl: work.thumbnail,
     pdfUrl: work.pdfUrl,
     slideUrls: work.slides || [],
@@ -428,6 +431,7 @@ export default function AdminPage() {
       year: Number(form.year),
       client: form.client,
       role: form.role,
+      featured: form.featured,
       thumbnail: form.thumbnailUrl,
       pdfUrl: form.pdfUrl,
       slides: form.slideUrls,
@@ -723,6 +727,9 @@ export default function AdminPage() {
                     Year
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8]">
+                    Featured
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8]">
                     Actions
                   </th>
                 </tr>
@@ -738,6 +745,9 @@ export default function AdminPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-[#2A0659]/70">
                       {work.year}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-[#2A0659]/80">
+                      {work.featured ? "Yes" : "No"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
@@ -770,7 +780,7 @@ export default function AdminPage() {
                   <tr>
                     <td
                       className="px-4 py-6 text-center text-sm font-semibold text-[#2A0659]/70"
-                      colSpan={4}
+                      colSpan={5}
                     >
                       No project matches your search.
                     </td>
@@ -911,6 +921,20 @@ export default function AdminPage() {
                 className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
                 required
               />
+            </div>
+
+            <div className="rounded-xl border border-[#D9B1FF] bg-[#FCF8FF] px-3 py-2">
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-[#2A0659]">
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={(event) =>
+                    handleFormChange("featured", event.target.checked)
+                  }
+                  className="h-4 w-4 rounded border-[#D9B1FF] text-[#2A0659]"
+                />
+                Showcase this project in Featured Projects on home page
+              </label>
             </div>
 
             <div>
