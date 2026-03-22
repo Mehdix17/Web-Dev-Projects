@@ -349,9 +349,17 @@ export default function AdminPage() {
         body: JSON.stringify(payload),
       });
 
+      const raw = await response.text();
+      let data: { error?: string } | null = null;
+      try {
+        data = raw ? (JSON.parse(raw) as { error?: string }) : null;
+      } catch {
+        data = null;
+      }
+
       if (!response.ok) {
-        const data = (await response.json()) as { error?: string };
-        const message = data.error || "Unable to save this work.";
+        const message =
+          data?.error || `Unable to save this work (status ${response.status}).`;
         setFormError(message);
         showToast("error", message);
         return;
@@ -360,6 +368,13 @@ export default function AdminPage() {
       await fetchWorks();
       resetForm();
       showToast("success", `Project ${actionLabel} successfully.`);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to save this work right now.";
+      setFormError(message);
+      showToast("error", message);
     } finally {
       setIsSaving(false);
     }
@@ -369,20 +384,38 @@ export default function AdminPage() {
     const confirmed = window.confirm("Delete this work permanently?");
     if (!confirmed) return;
 
-    const response = await fetch(`/api/admin/works/${slug}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) {
-      const data = (await response.json()) as { error?: string };
-      const message = data.error || "Unable to delete this work.";
+    try {
+      const response = await fetch(`/api/admin/works/${slug}`, {
+        method: "DELETE",
+      });
+      const raw = await response.text();
+      let data: { error?: string } | null = null;
+      try {
+        data = raw ? (JSON.parse(raw) as { error?: string }) : null;
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok) {
+        const message =
+          data?.error ||
+          `Unable to delete this work (status ${response.status}).`;
+        setFormError(message);
+        showToast("error", message);
+        return;
+      }
+
+      if (editingSlug === slug) resetForm();
+      await fetchWorks();
+      showToast("success", "Project deleted successfully.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to delete this work right now.";
       setFormError(message);
       showToast("error", message);
-      return;
     }
-
-    if (editingSlug === slug) resetForm();
-    await fetchWorks();
-    showToast("success", "Project deleted successfully.");
   };
 
   if (isLoading) {
