@@ -19,6 +19,11 @@ type WorkFormState = {
   summary: string;
 };
 
+type ToastState = {
+  kind: "success" | "error";
+  message: string;
+} | null;
+
 const emptyForm: WorkFormState = {
   slug: "",
   title: "",
@@ -62,6 +67,20 @@ export default function AdminPage() {
   const [isUploadingThumb, setIsUploadingThumb] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [editFromQuery, setEditFromQuery] = useState("");
+  const [toast, setToast] = useState<ToastState>(null);
+
+  const showToast = (kind: "success" | "error", message: string) => {
+    setToast({ kind, message });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 3200);
+
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   const isEditing = useMemo(() => Boolean(editingSlug), [editingSlug]);
   const uniqueClients = useMemo(
@@ -245,10 +264,12 @@ export default function AdminPage() {
     try {
       const url = await uploadAsset(file, "thumbnail");
       handleFormChange("thumbnailUrl", url);
+      showToast("success", "Thumbnail uploaded successfully.");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Thumbnail upload failed";
       setFormError(message);
+      showToast("error", message);
     } finally {
       setIsUploadingThumb(false);
     }
@@ -262,10 +283,12 @@ export default function AdminPage() {
     try {
       const url = await uploadAsset(file, "deck");
       handleFormChange("pdfUrl", url);
+      showToast("success", "PDF uploaded successfully.");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "PDF upload failed";
       setFormError(message);
+      showToast("error", message);
     } finally {
       setIsUploadingPdf(false);
     }
@@ -303,6 +326,7 @@ export default function AdminPage() {
       ? `/api/admin/works/${editingSlug}`
       : "/api/admin/works";
     const method = isEditing ? "PUT" : "POST";
+    const actionLabel = isEditing ? "updated" : "created";
 
     try {
       const response = await fetch(endpoint, {
@@ -313,12 +337,15 @@ export default function AdminPage() {
 
       if (!response.ok) {
         const data = (await response.json()) as { error?: string };
-        setFormError(data.error || "Unable to save this work.");
+        const message = data.error || "Unable to save this work.";
+        setFormError(message);
+        showToast("error", message);
         return;
       }
 
       await fetchWorks();
       resetForm();
+      showToast("success", `Project ${actionLabel} successfully.`);
     } finally {
       setIsSaving(false);
     }
@@ -333,12 +360,15 @@ export default function AdminPage() {
     });
     if (!response.ok) {
       const data = (await response.json()) as { error?: string };
-      setFormError(data.error || "Unable to delete this work.");
+      const message = data.error || "Unable to delete this work.";
+      setFormError(message);
+      showToast("error", message);
       return;
     }
 
     if (editingSlug === slug) resetForm();
     await fetchWorks();
+    showToast("success", "Project deleted successfully.");
   };
 
   if (isLoading) {
@@ -419,6 +449,24 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
+      {toast ? (
+        <div
+          className="fixed right-4 top-4 z-[120]"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold shadow-[0_20px_40px_-30px_rgba(42,6,89,0.85)] ${
+              toast.kind === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-red-200 bg-red-50 text-red-700"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      ) : null}
+
       <section className="rounded-3xl border border-[#EAD2FF] bg-gradient-to-br from-white via-[#FCF8FF] to-[#F7EFFF] p-6 shadow-[0_28px_60px_-44px_rgba(42,6,89,0.9)] md:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
