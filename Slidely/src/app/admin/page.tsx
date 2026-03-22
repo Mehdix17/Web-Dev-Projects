@@ -75,6 +75,9 @@ export default function AdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingThumb, setIsUploadingThumb] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const [togglingFeaturedSlug, setTogglingFeaturedSlug] = useState<string | null>(
+    null,
+  );
   const [editFromQuery, setEditFromQuery] = useState("");
   const [toast, setToast] = useState<ToastState>(null);
 
@@ -521,6 +524,86 @@ export default function AdminPage() {
     }
   };
 
+  const toggleFeatured = async (work: ManagedWork) => {
+    const nextFeatured = !work.featured;
+    setTogglingFeaturedSlug(work.slug);
+    setFormError("");
+
+    setWorks((prev) =>
+      prev.map((item) =>
+        item.slug === work.slug ? { ...item, featured: nextFeatured } : item,
+      ),
+    );
+
+    if (editingSlug === work.slug) {
+      handleFormChange("featured", nextFeatured);
+    }
+
+    try {
+      const payload = {
+        slug: work.slug,
+        title: work.title,
+        category: work.category,
+        year: work.year,
+        client: work.client,
+        role: work.role,
+        featured: nextFeatured,
+        thumbnail: work.thumbnail,
+        pdfUrl: work.pdfUrl,
+        slides: work.slides || [],
+        summary: work.summary,
+      };
+
+      const response = await fetch(`/api/admin/works/${work.slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const raw = await response.text();
+      let data: { error?: string } | null = null;
+      try {
+        data = raw ? (JSON.parse(raw) as { error?: string }) : null;
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            `Unable to update featured status (status ${response.status}).`,
+        );
+      }
+
+      showToast(
+        "success",
+        nextFeatured
+          ? "Project added to Featured Projects."
+          : "Project removed from Featured Projects.",
+      );
+      await fetchWorks();
+    } catch (error) {
+      setWorks((prev) =>
+        prev.map((item) =>
+          item.slug === work.slug ? { ...item, featured: work.featured } : item,
+        ),
+      );
+
+      if (editingSlug === work.slug) {
+        handleFormChange("featured", work.featured);
+      }
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to update featured status.";
+      setFormError(message);
+      showToast("error", message);
+    } finally {
+      setTogglingFeaturedSlug(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
@@ -747,7 +830,28 @@ export default function AdminPage() {
                       {work.year}
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-[#2A0659]/80">
-                      {work.featured ? "Yes" : "No"}
+                      <button
+                        type="button"
+                        aria-label={
+                          work.featured
+                            ? `Unfeature ${work.title}`
+                            : `Feature ${work.title}`
+                        }
+                        title={
+                          work.featured
+                            ? "Remove from Featured Projects"
+                            : "Add to Featured Projects"
+                        }
+                        onClick={() => void toggleFeatured(work)}
+                        disabled={togglingFeaturedSlug === work.slug}
+                        className={`text-lg leading-none transition-colors ${
+                          work.featured
+                            ? "text-[#7A21C8]"
+                            : "text-[#2A0659]/30 hover:text-[#7A21C8]"
+                        } disabled:opacity-50`}
+                      >
+                        {work.featured ? "★" : "☆"}
+                      </button>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
@@ -921,20 +1025,6 @@ export default function AdminPage() {
                 className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
                 required
               />
-            </div>
-
-            <div className="rounded-xl border border-[#D9B1FF] bg-[#FCF8FF] px-3 py-2">
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-[#2A0659]">
-                <input
-                  type="checkbox"
-                  checked={form.featured}
-                  onChange={(event) =>
-                    handleFormChange("featured", event.target.checked)
-                  }
-                  className="h-4 w-4 rounded border-[#D9B1FF] text-[#2A0659]"
-                />
-                Showcase this project in Featured Projects on home page
-              </label>
             </div>
 
             <div>
