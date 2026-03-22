@@ -917,11 +917,6 @@ export default function AdminPage() {
               <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
                 Thumbnail image
               </label>
-              {form.thumbnailUrl ? (
-                <p className="mb-2 rounded-lg border border-[#EAD2FF] bg-[#FCF8FF] px-3 py-2 text-xs text-[#2A0659]/75">
-                  Uploaded: {form.thumbnailUrl}
-                </p>
-              ) : null}
               <div className="mt-2 flex items-center gap-2">
                 <label className="rounded-full border border-[#D9B1FF] px-3 py-1.5 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] cursor-pointer">
                   {isUploadingThumb ? "Uploading..." : "Upload thumbnail"}
@@ -936,6 +931,11 @@ export default function AdminPage() {
                     }}
                   />
                 </label>
+                {form.thumbnailUrl && !isUploadingThumb ? (
+                  <span className="inline-flex items-center text-xs font-semibold text-emerald-700">
+                    ✓ Uploaded
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -943,16 +943,6 @@ export default function AdminPage() {
               <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
                 Presentation PDF (landscape)
               </label>
-              {form.pdfUrl ? (
-                <p className="mb-2 rounded-lg border border-[#EAD2FF] bg-[#FCF8FF] px-3 py-2 text-xs text-[#2A0659]/75">
-                  Uploaded: {form.pdfUrl}
-                </p>
-              ) : null}
-              {form.slideUrls.length > 0 ? (
-                <p className="mb-2 rounded-lg border border-[#EAD2FF] bg-[#FCF8FF] px-3 py-2 text-xs text-[#2A0659]/75">
-                  Converted slides: {form.slideUrls.length}
-                </p>
-              ) : null}
               <div className="mt-2 flex items-center gap-2">
                 <label className="rounded-full border border-[#D9B1FF] px-3 py-1.5 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] cursor-pointer">
                   {isUploadingPdf ? "Uploading + converting..." : "Upload PDF"}
@@ -967,6 +957,11 @@ export default function AdminPage() {
                     }}
                   />
                 </label>
+                {form.pdfUrl && form.slideUrls.length > 0 && !isUploadingPdf ? (
+                  <span className="inline-flex items-center text-xs font-semibold text-emerald-700">
+                    ✓ Uploaded
+                  </span>
+                ) : null}
               </div>
             </div>
 
