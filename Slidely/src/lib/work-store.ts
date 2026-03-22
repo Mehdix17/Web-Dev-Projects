@@ -131,26 +131,24 @@ export async function getWorks(): Promise<ManagedWork[]> {
 
 export async function saveWorks(works: ManagedWork[]) {
   if (hasDatabaseUrl()) {
-    await db.transaction(async (tx) => {
-      await tx.delete(worksTable);
+    await db.delete(worksTable);
 
-      if (works.length > 0) {
-        await tx.insert(worksTable).values(
-          works.map((work) => ({
-            slug: work.slug,
-            title: work.title,
-            category: work.category,
-            year: work.year,
-            client: work.client,
-            role: work.role,
-            thumbnail: work.thumbnail,
-            pdfUrl: work.pdfUrl,
-            summary: work.summary,
-            slides: normalizeSlides(work.slides || []),
-          })),
-        );
-      }
-    });
+    if (works.length > 0) {
+      await db.insert(worksTable).values(
+        works.map((work) => ({
+          slug: work.slug,
+          title: work.title,
+          category: work.category,
+          year: work.year,
+          client: work.client,
+          role: work.role,
+          thumbnail: work.thumbnail,
+          pdfUrl: work.pdfUrl,
+          summary: work.summary,
+          slides: normalizeSlides(work.slides || []),
+        })),
+      );
+    }
     return;
   }
 
