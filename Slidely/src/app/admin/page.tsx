@@ -247,12 +247,22 @@ export default function AdminPage() {
       body: formData,
     });
 
-    if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      throw new Error(payload.error || "Upload failed");
+    const raw = await response.text();
+    let payload: { url?: string; error?: string } | null = null;
+    try {
+      payload = raw ? (JSON.parse(raw) as { url?: string; error?: string }) : null;
+    } catch {
+      payload = null;
     }
 
-    const payload = (await response.json()) as { url: string };
+    if (!response.ok) {
+      throw new Error(payload?.error || `Upload failed with status ${response.status}`);
+    }
+
+    if (!payload?.url) {
+      throw new Error("Upload succeeded but no file URL was returned.");
+    }
+
     return payload.url;
   };
 
