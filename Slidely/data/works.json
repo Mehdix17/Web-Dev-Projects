@@ -1,0 +1,222 @@
+[
+  {
+    "slug": "test",
+    "title": "Test",
+    "category": "Pitch Decks",
+    "year": 2026,
+    "client": "Ana",
+    "role": "Presentation Designer",
+    "thumbnail": "/uploads/works/thumbnail-1773980658475-3f3c2764-9a74-4e77-9785-abcff40e362c.png",
+    "pdfUrl": "/uploads/works/deck-1773980642773-d10eedf9-e487-43d7-9b48-4832dd552219.pdf",
+    "summary": "dir brk yaw"
+  },
+  {
+    "slug": "atlas-fundraise",
+    "title": "Atlas Series A Fundraise",
+    "category": "Pitch Decks",
+    "year": 2025,
+    "client": "Atlas Labs",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/atlas-fundraise-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Atlas Labs needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/atlas-fundraise-slide-1/1400/900",
+      "https://picsum.photos/seed/atlas-fundraise-slide-2/1400/900",
+      "https://picsum.photos/seed/atlas-fundraise-slide-3/1400/900",
+      "https://picsum.photos/seed/atlas-fundraise-slide-4/1400/900",
+      "https://picsum.photos/seed/atlas-fundraise-slide-5/1400/900",
+      "https://picsum.photos/seed/atlas-fundraise-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "nova-go-to-market",
+    "title": "Nova GTM Launch Deck",
+    "category": "Sales",
+    "year": 2025,
+    "client": "Nova Commerce",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/nova-go-to-market-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Nova Commerce needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/nova-go-to-market-slide-1/1400/900",
+      "https://picsum.photos/seed/nova-go-to-market-slide-2/1400/900",
+      "https://picsum.photos/seed/nova-go-to-market-slide-3/1400/900",
+      "https://picsum.photos/seed/nova-go-to-market-slide-4/1400/900",
+      "https://picsum.photos/seed/nova-go-to-market-slide-5/1400/900",
+      "https://picsum.photos/seed/nova-go-to-market-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "sora-keynote",
+    "title": "Sora Product Keynote",
+    "category": "Keynote",
+    "year": 2024,
+    "client": "Sora Health",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/sora-keynote-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Sora Health needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/sora-keynote-slide-1/1400/900",
+      "https://picsum.photos/seed/sora-keynote-slide-2/1400/900",
+      "https://picsum.photos/seed/sora-keynote-slide-3/1400/900",
+      "https://picsum.photos/seed/sora-keynote-slide-4/1400/900",
+      "https://picsum.photos/seed/sora-keynote-slide-5/1400/900",
+      "https://picsum.photos/seed/sora-keynote-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "meridian-board",
+    "title": "Meridian Board Update",
+    "category": "Reports",
+    "year": 2025,
+    "client": "Meridian Capital",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/meridian-board-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Meridian Capital needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/meridian-board-slide-1/1400/900",
+      "https://picsum.photos/seed/meridian-board-slide-2/1400/900",
+      "https://picsum.photos/seed/meridian-board-slide-3/1400/900",
+      "https://picsum.photos/seed/meridian-board-slide-4/1400/900",
+      "https://picsum.photos/seed/meridian-board-slide-5/1400/900",
+      "https://picsum.photos/seed/meridian-board-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "strata-enterprise",
+    "title": "Strata Enterprise Pitch",
+    "category": "Pitch Decks",
+    "year": 2026,
+    "client": "Strata AI",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/strata-enterprise-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Strata AI needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/strata-enterprise-slide-1/1400/900",
+      "https://picsum.photos/seed/strata-enterprise-slide-2/1400/900",
+      "https://picsum.photos/seed/strata-enterprise-slide-3/1400/900",
+      "https://picsum.photos/seed/strata-enterprise-slide-4/1400/900",
+      "https://picsum.photos/seed/strata-enterprise-slide-5/1400/900",
+      "https://picsum.photos/seed/strata-enterprise-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "halo-revenue",
+    "title": "Halo Revenue Story",
+    "category": "Sales",
+    "year": 2025,
+    "client": "Halo Cloud",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/halo-revenue-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Halo Cloud needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/halo-revenue-slide-1/1400/900",
+      "https://picsum.photos/seed/halo-revenue-slide-2/1400/900",
+      "https://picsum.photos/seed/halo-revenue-slide-3/1400/900",
+      "https://picsum.photos/seed/halo-revenue-slide-4/1400/900",
+      "https://picsum.photos/seed/halo-revenue-slide-5/1400/900",
+      "https://picsum.photos/seed/halo-revenue-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "pulse-vision",
+    "title": "Pulse Vision Day",
+    "category": "Keynote",
+    "year": 2026,
+    "client": "Pulse Energy",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/pulse-vision-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Pulse Energy needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/pulse-vision-slide-1/1400/900",
+      "https://picsum.photos/seed/pulse-vision-slide-2/1400/900",
+      "https://picsum.photos/seed/pulse-vision-slide-3/1400/900",
+      "https://picsum.photos/seed/pulse-vision-slide-4/1400/900",
+      "https://picsum.photos/seed/pulse-vision-slide-5/1400/900",
+      "https://picsum.photos/seed/pulse-vision-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "arc-growth",
+    "title": "Arc Growth Narrative",
+    "category": "Pitch Decks",
+    "year": 2024,
+    "client": "Arc Motion",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/arc-growth-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Arc Motion needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/arc-growth-slide-1/1400/900",
+      "https://picsum.photos/seed/arc-growth-slide-2/1400/900",
+      "https://picsum.photos/seed/arc-growth-slide-3/1400/900",
+      "https://picsum.photos/seed/arc-growth-slide-4/1400/900",
+      "https://picsum.photos/seed/arc-growth-slide-5/1400/900",
+      "https://picsum.photos/seed/arc-growth-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "fable-partner",
+    "title": "Fable Partner Enablement",
+    "category": "Sales",
+    "year": 2026,
+    "client": "Fable Tech",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/fable-partner-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Fable Tech needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/fable-partner-slide-1/1400/900",
+      "https://picsum.photos/seed/fable-partner-slide-2/1400/900",
+      "https://picsum.photos/seed/fable-partner-slide-3/1400/900",
+      "https://picsum.photos/seed/fable-partner-slide-4/1400/900",
+      "https://picsum.photos/seed/fable-partner-slide-5/1400/900",
+      "https://picsum.photos/seed/fable-partner-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "zenith-strategy",
+    "title": "Zenith Strategy Report",
+    "category": "Reports",
+    "year": 2025,
+    "client": "Zenith Bio",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/zenith-strategy-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Zenith Bio needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/zenith-strategy-slide-1/1400/900",
+      "https://picsum.photos/seed/zenith-strategy-slide-2/1400/900",
+      "https://picsum.photos/seed/zenith-strategy-slide-3/1400/900",
+      "https://picsum.photos/seed/zenith-strategy-slide-4/1400/900",
+      "https://picsum.photos/seed/zenith-strategy-slide-5/1400/900",
+      "https://picsum.photos/seed/zenith-strategy-slide-6/1400/900"
+    ]
+  },
+  {
+    "slug": "vivid-summit",
+    "title": "Vivid Annual Summit",
+    "category": "Keynote",
+    "year": 2026,
+    "client": "Vivid Retail",
+    "role": "Lead Presentation Designer",
+    "thumbnail": "https://picsum.photos/seed/vivid-summit-thumb/900/600",
+    "pdfUrl": "",
+    "summary": "Vivid Retail needed to translate complex information into a persuasive executive narrative without losing technical credibility.",
+    "slides": [
+      "https://picsum.photos/seed/vivid-summit-slide-1/1400/900",
+      "https://picsum.photos/seed/vivid-summit-slide-2/1400/900",
+      "https://picsum.photos/seed/vivid-summit-slide-3/1400/900",
+      "https://picsum.photos/seed/vivid-summit-slide-4/1400/900",
+      "https://picsum.photos/seed/vivid-summit-slide-5/1400/900",
+      "https://picsum.photos/seed/vivid-summit-slide-6/1400/900"
+    ]
+  }
+]

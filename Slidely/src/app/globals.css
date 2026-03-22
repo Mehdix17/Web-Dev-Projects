@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #2a0659;
+  --primary: #b353ff;
+  --primary-foreground: #2a0659;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #140725;
+    --foreground: #f4eaff;
+    --primary: #bd6bff;
+    --primary-foreground: #2a0659;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Kursor type 1 size overrides */
+div[class*="kursor"].kursor--1 {
+  width: 40px !important;
+  height: 40px !important;
+  transition:
+    all 0.2s ease,
+    top 0.12s ease-out,
+    left 0.12s ease-out !important;
+}
+
+div[class*="kursor"].kursor--1 + .kursorChild {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+div[class*="kursor"].kursor--1.--hover {
+  width: 62px !important;
+  height: 62px !important;
+  border: 3px solid rgba(179, 83, 255, 0.35) !important;
+  background: rgba(179, 83, 255, 0.18) !important;
+  box-shadow:
+    0 0 0 10px rgba(179, 83, 255, 0.12),
+    0 10px 30px -16px rgba(42, 6, 89, 0.7) !important;
+}
+
+div[class*="kursor"].kursor--1.--hover + .kursorChild {
+  width: 10px !important;
+  height: 10px !important;
+  background: rgba(179, 83, 255, 0.9) !important;
+}
+
+div[class*="kursor"].kursor--1.kursor--down {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .starfall-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 9999px;
+    background: #b353ff;
+    box-shadow: 0 0 12px rgba(179, 83, 255, 0.8);
+    animation: starfall 6.5s linear infinite;
+    opacity: 0;
+  }
+
+  .starfall-streak {
+    width: 2px;
+    height: 18px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to bottom,
+      rgba(179, 83, 255, 0.95),
+      rgba(224, 180, 255, 0.05)
+    );
+    box-shadow: 0 0 16px rgba(179, 83, 255, 0.7);
+    transform: rotate(10deg);
+    animation: starfall-streak 5.8s linear infinite;
+    opacity: 0;
+  }
+
+  .aurora-shift {
+    animation: aurora-shift 9s ease-in-out infinite;
+  }
+
+  .nav-shell {
+    position: relative;
+    overflow: hidden;
+    animation: nav-float 6s ease-in-out infinite;
+  }
+
+  .nav-shell::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      120deg,
+      rgba(179, 83, 255, 0.16),
+      rgba(224, 180, 255, 0),
+      rgba(179, 83, 255, 0.16)
+    );
+    transform: translateX(-60%);
+    animation: nav-sheen 7.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes starfall {
+  0% {
+    transform: translate3d(0, -30px, 0) scale(0.8);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-40px, 540px, 0) scale(1.05);
+    opacity: 0;
+  }
+}
+
+@keyframes starfall-streak {
+  0% {
+    transform: translate3d(0, -36px, 0) rotate(10deg);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-52px, 620px, 0) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+@keyframes aurora-shift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(16px, -10px, 0) scale(1.06);
+  }
+}
+
+@keyframes nav-sheen {
+  0% {
+    transform: translateX(-62%);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(62%);
+    opacity: 0;
+  }
+}
+
+@keyframes nav-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}

@@ -1,0 +1,13 @@
+<svg width="520" height="520" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="520" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6EBFF"/>
+      <stop offset="1" stop-color="#E7CBFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="520" height="520" rx="42" fill="url(#bg)"/>
+  <circle cx="260" cy="208" r="94" fill="#B353FF" fill-opacity="0.18"/>
+  <path d="M260 316C181 316 116 374 102 454H418C404 374 339 316 260 316Z" fill="#2A0659" fill-opacity="0.18"/>
+  <circle cx="260" cy="206" r="74" fill="#2A0659" fill-opacity="0.24"/>
+  <text x="50%" y="86%" text-anchor="middle" fill="#2A0659" fill-opacity="0.72" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">Replace with your portrait</text>
+</svg>

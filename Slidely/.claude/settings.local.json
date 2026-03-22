@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(find /c/Users/mehdi/OneDrive/Bureau/dev/slidely -name *.md -not -path */.* -not -path */bmad/* -not -path */.claude/* -not -path */.github/*)",
+      "Bash(find C:UsersmehdiOneDriveBureaudevslidely -name *.md -newer C:UsersmehdiOneDriveBureaudevslidely_bmad-outputplanning-artifactsepics.md)",
+      "Bash(find . -name *.md -mmin -30)",
+      "Bash(find . -type f -name *.md -newer _bmad-output/planning-artifacts/epics.md)"
+    ]
+  }
+}
