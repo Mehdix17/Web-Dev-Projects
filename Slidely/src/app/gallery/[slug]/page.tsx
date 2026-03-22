@@ -3,7 +3,6 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { PresentationViewer } from "@/components/work/PresentationViewer";
 import { getCurrentAdminUser } from "@/lib/admin-auth";
-import { resolvePublicWorkAssets } from "@/lib/work-asset-urls";
 import { getWorks } from "@/lib/work-store";
 
 interface PageProps {
@@ -17,15 +16,12 @@ export default async function CaseStudyPage({ params }: PageProps) {
   const project = projects.find((item) => item.slug === slug);
   if (!project) notFound();
 
-  const resolvedProject = resolvePublicWorkAssets(project);
-
   const otherProjects = projects
     .filter((item) => item.slug !== project.slug)
-    .slice(0, 3)
-    .map(resolvePublicWorkAssets);
-  const viewerSlides = (resolvedProject.slides || []).map((src, index) => ({
+    .slice(0, 3);
+  const viewerSlides = (project.slides || []).map((src, index) => ({
     src,
-    alt: `${resolvedProject.title} slide ${index + 1}`,
+    alt: `${project.title} slide ${index + 1}`,
   }));
 
   return (
@@ -77,9 +73,9 @@ export default async function CaseStudyPage({ params }: PageProps) {
 
         <section className="mt-10" aria-label="Presentation preview">
           <PresentationViewer
-            pdfUrl={resolvedProject.pdfUrl}
+            pdfUrl={project.pdfUrl}
             fallbackSlides={viewerSlides}
-            title={resolvedProject.title}
+            title={project.title}
           />
         </section>
 
