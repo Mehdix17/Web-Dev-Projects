@@ -16,6 +16,14 @@ function getBlobAccessMode(): "public" | "private" {
   return mode === "private" ? "private" : "public";
 }
 
+async function loadBlob(url: string, request: Request, access: "public" | "private") {
+  return get(url, {
+    access,
+    ifNoneMatch: request.headers.get("if-none-match") || undefined,
+    useCache: true,
+  });
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const blobUrl = searchParams.get("url") || "";
@@ -25,11 +33,25 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await get(blobUrl, {
-      access: getBlobAccessMode(),
-      ifNoneMatch: request.headers.get("if-none-match") || undefined,
-      useCache: true,
-    });
+    const requestedAccess = getBlobAccessMode();
+    let result;
+
+    try {
+      result = await loadBlob(blobUrl, request, requestedAccess);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const shouldRetryAsPrivate =
+        requestedAccess === "public" &&
+        message.includes(
+          "Cannot use public access on a private store. The store is configured with private access.",
+        );
+
+      if (!shouldRetryAsPrivate) {
+        throw error;
+      }
+
+      result = await loadBlob(blobUrl, request, "private");
+    }
 
     if (!result) {
       return new Response("Blob not found", { status: 404 });
