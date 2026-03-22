@@ -7,7 +7,8 @@ import { workCategories } from "@/lib/work-types";
 
 const ADMIN_PAGE_SIZE = 8;
 const MAX_PDF_SLIDE_PAGES = 24;
-const PDF_RENDER_SCALE = 1.25;
+const TARGET_SLIDE_WIDTH = 1920;
+const TARGET_SLIDE_HEIGHT = 1080;
 
 type WorkFormState = {
   slug: string;
@@ -295,8 +296,7 @@ export default function AdminPage() {
 
   const convertPdfToSlideImages = async (file: File) => {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    pdfjs.GlobalWorkerOptions.workerSrc =
-      `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
     const bytes = await file.arrayBuffer();
     const loadingTask = pdfjs.getDocument({ data: bytes });
@@ -312,7 +312,12 @@ export default function AdminPage() {
 
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
-      const viewport = page.getViewport({ scale: PDF_RENDER_SCALE });
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = Math.min(
+        TARGET_SLIDE_WIDTH / baseViewport.width,
+        TARGET_SLIDE_HEIGHT / baseViewport.height,
+      );
+      const viewport = page.getViewport({ scale });
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
 
@@ -320,10 +325,19 @@ export default function AdminPage() {
         throw new Error("Unable to create canvas context for PDF conversion.");
       }
 
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
+      canvas.width = TARGET_SLIDE_WIDTH;
+      canvas.height = TARGET_SLIDE_HEIGHT;
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
 
-      await page.render({ canvasContext: context, viewport }).promise;
+      const offsetX = (TARGET_SLIDE_WIDTH - viewport.width) / 2;
+      const offsetY = (TARGET_SLIDE_HEIGHT - viewport.height) / 2;
+
+      await page.render({
+        canvasContext: context,
+        viewport,
+        transform: [1, 0, 0, 1, offsetX, offsetY],
+      }).promise;
       const blob = await canvasToJpegBlob(canvas);
 
       files.push(
