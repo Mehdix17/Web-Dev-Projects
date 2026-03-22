@@ -1,10 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
+import { unstable_noStore as noStore } from "next/cache";
 import { Card } from "@/components/ui/Card";
-import { projects } from "@/lib/site-data";
+import { getWorks } from "@/lib/work-store";
 
-export function FeaturedProjectsSection() {
-  const featured = projects.slice(0, 5);
+export async function FeaturedProjectsSection() {
+  noStore();
+  const works = await getWorks();
+  const featured = works.slice(0, 5);
 
   return (
     <section
@@ -26,8 +29,13 @@ export function FeaturedProjectsSection() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-6 md:grid-rows-[260px_220px_220px]">
-        {featured.map((project, index) => (
+      {featured.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[#D9B1FF] bg-white px-6 py-10 text-center text-sm font-semibold text-[#2A0659]/70">
+          No featured projects yet. Add one from the dashboard.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-6 md:grid-rows-[260px_220px_220px]">
+          {featured.map((project, index) => (
           <Link
             key={project.slug}
             href={`/gallery/${project.slug}`}
@@ -60,8 +68,9 @@ export function FeaturedProjectsSection() {
               <h3 className="mt-2 text-xl font-semibold">{project.title}</h3>
             </Card>
           </Link>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
