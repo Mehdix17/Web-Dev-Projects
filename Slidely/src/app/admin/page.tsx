@@ -250,13 +250,17 @@ export default function AdminPage() {
     const raw = await response.text();
     let payload: { url?: string; error?: string } | null = null;
     try {
-      payload = raw ? (JSON.parse(raw) as { url?: string; error?: string }) : null;
+      payload = raw
+        ? (JSON.parse(raw) as { url?: string; error?: string })
+        : null;
     } catch {
       payload = null;
     }
 
     if (!response.ok) {
-      throw new Error(payload?.error || `Upload failed with status ${response.status}`);
+      throw new Error(
+        payload?.error || `Upload failed with status ${response.status}`,
+      );
     }
 
     if (!payload?.url) {

@@ -107,11 +107,15 @@ For reliable persistence on Vercel, this project uses:
 
 - Neon Postgres for metadata (`DATABASE_URL`)
 - Vercel Blob for uploaded thumbnails and PDFs (`BLOB_READ_WRITE_TOKEN`)
+- Optional Blob access mode override (`BLOB_ACCESS=public|private`, default `public`)
 
 Setup checklist:
 
 1. Create a Neon Postgres database and set `DATABASE_URL`.
 2. In Vercel Storage, create a Blob store and set `BLOB_READ_WRITE_TOKEN`.
+
+- If your Blob store is configured as private, also set `BLOB_ACCESS=private`.
+
 3. Set admin auth variables (`ADMIN_AUTH_SECRET`, `ADMIN_USERNAME`, and password hash/salt values).
 4. Run:
 

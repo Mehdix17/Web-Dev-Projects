@@ -41,6 +41,11 @@ function hasBlobStorage() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+function getBlobAccessMode(): "public" | "private" {
+  const mode = (process.env.BLOB_ACCESS || "public").toLowerCase();
+  return mode === "private" ? "private" : "public";
+}
+
 export async function POST(request: Request) {
   try {
     if (!(await getCurrentAdminUser())) {
@@ -99,11 +104,42 @@ export async function POST(request: Request) {
 
     if (hasBlobStorage()) {
       const blobPath = `${relativeDir.replace(/\\/g, "/")}/${fileName}`;
-      const blob = await put(blobPath, file, {
-        access: "public",
-        addRandomSuffix: false,
-      });
-      return NextResponse.json({ url: blob.url });
+      const requestedAccess = getBlobAccessMode();
+
+      try {
+        const blob = await put(blobPath, file, {
+          access: requestedAccess,
+          addRandomSuffix: false,
+        });
+
+        return NextResponse.json({
+          url: blob.url,
+          access: requestedAccess,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        const isPrivateStorePublicAccessMismatch =
+          requestedAccess === "public" &&
+          message.includes(
+            "Cannot use public access on a private store. The store is configured with private access.",
+          );
+
+        if (!isPrivateStorePublicAccessMismatch) {
+          throw error;
+        }
+
+        const blob = await put(blobPath, file, {
+          access: "private",
+          addRandomSuffix: false,
+        });
+
+        return NextResponse.json({
+          url: blob.url,
+          access: "private",
+          warning:
+            "Blob store is private. Set BLOB_ACCESS=private to remove this fallback and ensure consistent behavior.",
+        });
+      }
     }
 
     if (process.env.VERCEL) {
