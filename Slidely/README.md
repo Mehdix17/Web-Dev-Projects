@@ -92,6 +92,9 @@ Then open `/admin`, sign in, and manage work items (CRUD, thumbnail upload, PDF 
 - Public project data is served by `src/app/api/works` endpoints.
 - Gallery is the canonical public listing route (`/gallery`).
 - Legacy `/work` routes are retained for compatibility.
+- Public work data is cached with a short revalidation window (currently 1 minute) for faster home and gallery loads.
+- Admin create/update/delete actions revalidate the works cache so content updates appear quickly.
+- When `DATABASE_URL` is set but the DB is temporarily unreachable, read/write operations gracefully fallback to local `data/works.json` instead of crashing public pages.
 
 ## Deployment
 

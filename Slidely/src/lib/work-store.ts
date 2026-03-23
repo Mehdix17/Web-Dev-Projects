@@ -3,6 +3,7 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { desc, eq } from "drizzle-orm";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { db } from "@/lib/db/client";
 import { works as worksTable, type WorkRow } from "@/lib/db/schema";
 import { projects } from "@/lib/site-data";
@@ -10,9 +11,22 @@ import type { ManagedWork, WorkCategory } from "@/lib/work-types";
 
 const dataDir = path.join(process.cwd(), "data");
 const dataFile = path.join(dataDir, "works.json");
+let hasLoggedDbFallback = false;
 
 function hasDatabaseUrl() {
   return Boolean(process.env.DATABASE_URL);
+}
+
+function reportDatabaseFallback(error: unknown) {
+  if (hasLoggedDbFallback) {
+    return;
+  }
+
+  hasLoggedDbFallback = true;
+  console.warn(
+    "Database unavailable. Falling back to local works data.",
+    error,
+  );
 }
 
 function toManagedWork(project: (typeof projects)[number]): ManagedWork {
@@ -119,58 +133,85 @@ async function ensureSeedFile() {
   }
 }
 
-export async function getWorks(): Promise<ManagedWork[]> {
-  if (hasDatabaseUrl()) {
-    const works = await db
-      .select()
-      .from(worksTable)
-      .orderBy(desc(worksTable.updatedAt), desc(worksTable.createdAt));
-    return works.map(mapDbWorkToManagedWork);
-  }
-
+async function readWorksFromFile() {
   await ensureSeedFile();
   const raw = await fs.readFile(dataFile, "utf-8");
   const parsed = JSON.parse(raw) as RawWork[];
   return parsed.map(normalizeStoredWork);
 }
 
+async function readWorksFromSource(): Promise<ManagedWork[]> {
+  if (hasDatabaseUrl()) {
+    try {
+      const works = await db
+        .select()
+        .from(worksTable)
+        .orderBy(desc(worksTable.updatedAt), desc(worksTable.createdAt));
+      return works.map(mapDbWorkToManagedWork);
+    } catch (error) {
+      reportDatabaseFallback(error);
+    }
+  }
+
+  return readWorksFromFile();
+}
+
+const getCachedWorks = unstable_cache(readWorksFromSource, ["works-all"], {
+  tags: ["works"],
+  revalidate: 60,
+});
+
+export async function getWorks(): Promise<ManagedWork[]> {
+  return getCachedWorks();
+}
+
 export async function saveWorks(works: ManagedWork[]) {
   if (hasDatabaseUrl()) {
-    await db.delete(worksTable);
+    try {
+      await db.delete(worksTable);
 
-    if (works.length > 0) {
-      await db.insert(worksTable).values(
-        works.map((work) => ({
-          slug: work.slug,
-          title: work.title,
-          category: work.category,
-          year: work.year,
-          client: work.client,
-          role: work.role,
-          featured: Boolean(work.featured),
-          thumbnail: work.thumbnail,
-          pdfUrl: work.pdfUrl,
-          summary: work.summary,
-          slides: normalizeSlides(work.slides || []),
-        })),
-      );
+      if (works.length > 0) {
+        await db.insert(worksTable).values(
+          works.map((work) => ({
+            slug: work.slug,
+            title: work.title,
+            category: work.category,
+            year: work.year,
+            client: work.client,
+            role: work.role,
+            featured: Boolean(work.featured),
+            thumbnail: work.thumbnail,
+            pdfUrl: work.pdfUrl,
+            summary: work.summary,
+            slides: normalizeSlides(work.slides || []),
+          })),
+        );
+      }
+      revalidateTag("works", "max");
+      return;
+    } catch (error) {
+      reportDatabaseFallback(error);
     }
-    return;
   }
 
   await fs.mkdir(dataDir, { recursive: true });
   await fs.writeFile(dataFile, JSON.stringify(works, null, 2), "utf-8");
+  revalidateTag("works", "max");
 }
 
 export async function getWorkBySlug(slug: string) {
   if (hasDatabaseUrl()) {
-    const rows = await db
-      .select()
-      .from(worksTable)
-      .where(eq(worksTable.slug, slug))
-      .limit(1);
-    const row = rows[0];
-    return row ? mapDbWorkToManagedWork(row) : undefined;
+    try {
+      const rows = await db
+        .select()
+        .from(worksTable)
+        .where(eq(worksTable.slug, slug))
+        .limit(1);
+      const row = rows[0];
+      return row ? mapDbWorkToManagedWork(row) : undefined;
+    } catch (error) {
+      reportDatabaseFallback(error);
+    }
   }
 
   const works = await getWorks();

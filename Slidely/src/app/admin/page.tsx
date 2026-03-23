@@ -75,9 +75,9 @@ export default function AdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingThumb, setIsUploadingThumb] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
-  const [togglingFeaturedSlug, setTogglingFeaturedSlug] = useState<string | null>(
-    null,
-  );
+  const [togglingFeaturedSlug, setTogglingFeaturedSlug] = useState<
+    string | null
+  >(null);
   const [editFromQuery, setEditFromQuery] = useState("");
   const [toast, setToast] = useState<ToastState>(null);
 
@@ -617,7 +617,7 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16">
-        <div className="rounded-3xl border border-[#EAD2FF] bg-white p-8 shadow-[0_20px_50px_-38px_rgba(42,6,89,0.9)]">
+        <div className="rounded-3xl border border-[#EAD2FF] bg-background p-8 shadow-[0_20px_50px_-38px_rgba(42,6,89,0.9)]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7A21C8]">
             Admin Access
           </p>
@@ -718,14 +718,14 @@ export default function AdminPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/gallery"
-              className="rounded-full border border-[#D9B1FF] bg-white px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:bg-[#F8F1FF]"
+              className="rounded-full border border-[#D9B1FF] bg-background px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:bg-[#F8F1FF]"
             >
               View public site
             </Link>
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-full border border-[#D9B1FF] bg-white px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:bg-[#F8F1FF]"
+              className="rounded-full border border-[#D9B1FF] bg-background px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:bg-[#F8F1FF]"
             >
               New project draft
             </button>
@@ -740,7 +740,7 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-2xl border border-[#EAD2FF] bg-white p-4">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
               Total Projects
             </p>
@@ -748,7 +748,7 @@ export default function AdminPage() {
               {works.length}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#EAD2FF] bg-white p-4">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
               Unique Clients
             </p>
@@ -756,7 +756,7 @@ export default function AdminPage() {
               {uniqueClients}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#EAD2FF] bg-white p-4">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
               Needs Completion
             </p>
@@ -764,7 +764,7 @@ export default function AdminPage() {
               {worksMissingAssets}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#EAD2FF] bg-white p-4">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
               Active Filter
             </p>
@@ -776,7 +776,7 @@ export default function AdminPage() {
       </section>
 
       <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[1.35fr_1fr]">
-        <section className="rounded-3xl border border-[#EAD2FF] bg-white p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)]">
+        <section className="rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)]">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 className="text-xl font-black tracking-tight text-[#2A0659]">
               Portfolio projects
@@ -921,7 +921,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[#EAD2FF] bg-white p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)]">
+        <section className="rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)]">
           <h2 className="text-xl font-black tracking-tight text-[#2A0659]">
             {isEditing ? "Edit project" : "Add new project"}
           </h2>

@@ -1,13 +1,16 @@
 import { Card } from "@/components/ui/Card";
 import { services } from "@/lib/site-data";
+import { ServicesSectionMotion } from "@/components/animations/ServicesSectionMotion";
 
 export function ServicesSection() {
   return (
     <section
+      data-services-root
       className="mx-auto max-w-6xl px-4 py-12 md:py-16"
       aria-labelledby="services-overview"
     >
-      <div>
+      <ServicesSectionMotion />
+      <div data-services-heading>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#B353FF]">
           What We Do
         </p>
@@ -23,11 +26,15 @@ export function ServicesSection() {
         </p>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      <div
+        data-services-grid
+        className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
+      >
         {services.map((service, index) => (
           <Card
+            data-service-card
             key={service.title}
-            className="group relative overflow-hidden border border-[#E3D7EE] bg-white/95 p-0 transition-all duration-300 hover:-translate-y-1 hover:border-[#B995D8] hover:shadow-[0_20px_40px_-30px_rgba(42,6,89,0.45)]"
+            className="group relative overflow-hidden border border-[#E3D7EE] bg-background/95 p-0 transition-all duration-300 hover:-translate-y-1 hover:border-[#B995D8] hover:shadow-[0_20px_40px_-30px_rgba(42,6,89,0.45)]"
           >
             <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#2A0659] via-[#7A21C8] to-[#B353FF]" />
 

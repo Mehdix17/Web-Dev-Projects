@@ -30,31 +30,31 @@ export default async function CaseStudyPage({ params }: PageProps) {
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
           {project.category}
         </p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-[#2A0659] md:text-5xl">
+        <h1 className="mt-2 text-4xl font-black tracking-tight text-foreground md:text-5xl">
           {project.title}
         </h1>
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-[#EAD2FF] bg-white px-4 py-3 shadow-[0_14px_28px_-24px_rgba(42,6,89,0.85)]">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background px-4 py-3 shadow-[0_14px_28px_-24px_rgba(42,6,89,0.85)]">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#7A21C8]">
               Client
             </p>
-            <p className="mt-1 text-sm font-semibold text-[#2A0659]">
+            <p className="mt-1 text-sm font-semibold text-foreground">
               {project.client}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#EAD2FF] bg-white px-4 py-3 shadow-[0_14px_28px_-24px_rgba(42,6,89,0.85)]">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background px-4 py-3 shadow-[0_14px_28px_-24px_rgba(42,6,89,0.85)]">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#7A21C8]">
               Role
             </p>
-            <p className="mt-1 text-sm font-semibold text-[#2A0659]">
+            <p className="mt-1 text-sm font-semibold text-foreground">
               {project.role}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#EAD2FF] bg-white px-4 py-3 shadow-[0_14px_28px_-24px_rgba(42,6,89,0.85)]">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background px-4 py-3 shadow-[0_14px_28px_-24px_rgba(42,6,89,0.85)]">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#7A21C8]">
               Year
             </p>
-            <p className="mt-1 text-sm font-semibold text-[#2A0659]">
+            <p className="mt-1 text-sm font-semibold text-foreground">
               {project.year}
             </p>
           </div>
@@ -64,7 +64,7 @@ export default async function CaseStudyPage({ params }: PageProps) {
           <div className="mt-5">
             <Link
               href={`/admin?edit=${encodeURIComponent(project.slug)}`}
-              className="inline-flex items-center rounded-full border border-[#D9B1FF] bg-white px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:border-[#B353FF] hover:bg-[#F8F1FF]"
+              className="inline-flex items-center rounded-full border border-[#D9B1FF] bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-[#B353FF] hover:bg-[#F8F1FF]"
             >
               Edit this presentation
             </Link>
@@ -85,14 +85,14 @@ export default async function CaseStudyPage({ params }: PageProps) {
         >
           <h2
             id="project-summary-heading"
-            className="text-2xl font-black tracking-tight text-[#2A0659]"
+            className="text-2xl font-black tracking-tight text-foreground"
           >
             Quick description
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-[#2A0659]/75 md:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-foreground/75 md:text-base">
             {project.summary}
           </p>
-          <p className="mt-3 text-sm leading-relaxed text-[#2A0659]/75 md:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-foreground/75 md:text-base">
             This presentation was designed to balance narrative clarity, visual
             consistency, and practical slide usability for real client
             conversations.
@@ -104,13 +104,13 @@ export default async function CaseStudyPage({ params }: PageProps) {
         <div className="flex items-end justify-between gap-4">
           <h2
             id="other-projects-heading"
-            className="text-2xl font-black tracking-tight text-[#2A0659] md:text-3xl"
+            className="text-2xl font-black tracking-tight text-foreground md:text-3xl"
           >
             More Projects
           </h2>
           <Link
             href="/gallery"
-            className="text-sm font-semibold text-[#7A21C8] transition-colors hover:text-[#2A0659] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="text-sm font-semibold text-[#7A21C8] transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             View all projects
           </Link>
@@ -121,7 +121,7 @@ export default async function CaseStudyPage({ params }: PageProps) {
             <Link
               key={item.slug}
               href={`/gallery/${item.slug}`}
-              className="group rounded-2xl border border-[#EAD2FF] bg-white p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#C88BFF] hover:shadow-[0_18px_36px_-26px_rgba(42,6,89,0.85)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="group rounded-2xl border border-[#EAD2FF] bg-background p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#C88BFF] hover:shadow-[0_18px_36px_-26px_rgba(42,6,89,0.85)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <Image
                 src={item.thumbnail}
@@ -134,10 +134,10 @@ export default async function CaseStudyPage({ params }: PageProps) {
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                 {item.category}
               </p>
-              <h3 className="mt-1 text-lg font-bold text-[#2A0659]">
+              <h3 className="mt-1 text-lg font-bold text-foreground">
                 {item.title}
               </h3>
-              <p className="mt-1 text-sm text-[#2A0659]/70">
+              <p className="mt-1 text-sm text-foreground/70">
                 {item.client} • {item.year}
               </p>
             </Link>

@@ -18,7 +18,10 @@ export function HeroSection() {
   ];
 
   return (
-    <section className="relative overflow-hidden bg-white px-4 pt-20 pb-6 md:pt-24 md:pb-8">
+    <section
+      data-hero-root
+      className="relative overflow-hidden bg-background px-4 pt-20 pb-6 md:pt-24 md:pb-8"
+    >
       <div className="pointer-events-none absolute inset-0">
         {orbs.map((orb, index) => (
           <span
@@ -42,19 +45,28 @@ export function HeroSection() {
       </div>
 
       <div className="relative mx-auto max-w-5xl text-center">
-        <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-[#2A0659] md:text-7xl">
+        <h1
+          data-hero-title
+          className="text-4xl font-black leading-[1.05] tracking-tight text-[#2A0659] md:text-7xl"
+        >
           Slidely
           <br />
           Build Your Story
         </h1>
-        <p className="mx-auto mt-6 max-w-3xl text-sm text-[#2A0659]/70 md:text-base">
+        <p
+          data-hero-body
+          className="mx-auto mt-6 max-w-3xl text-sm text-[#2A0659]/70 md:text-base"
+        >
           Professional presentation design for everyone : custom storytelling,
           clear structure, and visuals built to win trust across pitch decks,
           educational presentations, executive summaries, and full deck
           redesigns.
         </p>
 
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+        <div
+          data-hero-actions
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+        >
           <Button
             href="/gallery"
             className="bg-[#2A0659] text-white hover:bg-[#B353FF] hover:text-[#2A0659]"

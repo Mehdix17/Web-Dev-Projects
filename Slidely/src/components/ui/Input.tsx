@@ -8,7 +8,7 @@ type TextInputProps = BaseProps & InputHTMLAttributes<HTMLInputElement>;
 type TextareaProps = BaseProps & TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 const shared =
-  "w-full rounded-xl border bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 dark:bg-gray-950 dark:text-gray-100";
+  "w-full rounded-xl border bg-background px-4 py-3 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-primary/20";
 
 export function Input({
   hasError = false,

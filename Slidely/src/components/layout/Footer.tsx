@@ -54,33 +54,33 @@ export function Footer() {
           {/* Column 3: Socials */}
           <div>
             <h3 className="text-lg font-semibold mb-4 text-white">Connect</h3>
-            <div className="flex space-x-4">
+            <div className="flex flex-col space-y-3">
               <a
-                href="https://linkedin.com"
+                href="https://www.upwork.com/freelancers/~018352e06aaf62f49a"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#E0B4FF] hover:text-white transition-colors p-2 -ml-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2A0659] rounded-full"
-                aria-label="LinkedIn"
+                className="text-[#E0B4FF] hover:text-white transition-colors text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2A0659] rounded w-fit"
+                aria-label="Upwork"
               >
-                <Linkedin size={20} />
+                Upwork
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.fiverr.com/users/mehdix_17"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#E0B4FF] hover:text-white transition-colors p-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2A0659] rounded-full"
-                aria-label="Instagram"
+                className="text-[#E0B4FF] hover:text-white transition-colors text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2A0659] rounded w-fit"
+                aria-label="Fiverr"
               >
-                <Instagram size={20} />
+                Fiverr
               </a>
               <a
-                href="https://behance.net"
+                href="https://www.freelancer.com/u/mehdix17"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#E0B4FF] hover:text-white transition-colors p-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2A0659] rounded-full"
-                aria-label="Behance"
+                className="text-[#E0B4FF] hover:text-white transition-colors text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2A0659] rounded w-fit"
+                aria-label="Freelancer.com"
               >
-                <span className="text-sm font-bold tracking-tight">Be</span>
+                Freelancer.com
               </a>
             </div>
           </div>
@@ -94,10 +94,10 @@ export function Footer() {
               Currently accepting new projects.
             </p>
             <a
-              href="mailto:hello@slidely.com"
+              href="mailto:slidelyofficial@gmail.com"
               className="text-[#BD6BFF] hover:text-[#E0B4FF] transition-colors text-sm font-medium focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#2A0659] rounded"
             >
-              hello@slidely.com
+              slidelyofficial@gmail.com
             </a>
           </div>
         </div>

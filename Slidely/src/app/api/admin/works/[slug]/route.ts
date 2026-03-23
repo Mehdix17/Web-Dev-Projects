@@ -49,7 +49,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
     if (!normalized.slides || normalized.slides.length === 0) {
       return NextResponse.json(
-        { error: "Slide images are required. Upload a PDF to generate slides." },
+        {
+          error: "Slide images are required. Upload a PDF to generate slides.",
+        },
         { status: 400 },
       );
     }

@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { AppCursor } from "@/components/ui/AppCursor";
 import { ScrollSmoother } from "@/components/ui/ScrollSmoother";
+import { SplashLoader } from "@/components/animations/SplashLoader";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} antialiased min-h-screen flex flex-col`}
       >
+        <SplashLoader />
         <ScrollSmoother />
         <AppCursor />
         <Header />

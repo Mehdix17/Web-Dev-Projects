@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { PDFDocument } from "pdf-lib";
+import gsap from "gsap";
 
 type Slide = {
   src: string;
@@ -23,6 +24,9 @@ export function PresentationViewer({
   const [numPages, setNumPages] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pdfError, setPdfError] = useState("");
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const thumbStripRef = useRef<HTMLDivElement | null>(null);
+  const directionRef = useRef<1 | -1>(1);
 
   const hasSlides = fallbackSlides.length > 0;
   const hasPdf = !hasSlides && Boolean(pdfUrl);
@@ -82,24 +86,29 @@ export function PresentationViewer({
   }, [hasPdf, slideCount]);
 
   const scrollTo = (index: number) => {
+    directionRef.current = index >= selectedIndex ? 1 : -1;
     setSelectedIndex(index);
   };
 
   const goPrevious = () => {
+    directionRef.current = -1;
     setSelectedIndex((index) => Math.max(0, index - 1));
   };
 
   const goNext = () => {
     if (hasPdf && numPages !== null) {
+      directionRef.current = 1;
       setSelectedIndex((index) => Math.min(numPages - 1, index + 1));
       return;
     }
 
     if (hasPdf && numPages === null) {
+      directionRef.current = 1;
       setSelectedIndex((index) => index + 1);
       return;
     }
 
+    directionRef.current = 1;
     setSelectedIndex((index) => Math.min(fallbackSlides.length - 1, index + 1));
   };
 
@@ -119,13 +128,62 @@ export function PresentationViewer({
     return Array.from({ length: end - start + 1 }, (_, index) => start + index);
   }, [numPages, currentPage]);
 
+  useLayoutEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    if (frameRef.current) {
+      const direction = directionRef.current;
+      gsap.fromTo(
+        frameRef.current,
+        {
+          opacity: 0.45,
+          x: direction * 24,
+          rotateY: direction * 4,
+          transformPerspective: 1200,
+          transformOrigin: "center center",
+        },
+        {
+          opacity: 1,
+          x: 0,
+          rotateY: 0,
+          duration: 0.48,
+          ease: "power2.out",
+          clearProps: "transform",
+        },
+      );
+    }
+
+    if (thumbStripRef.current) {
+      const buttons = Array.from(
+        thumbStripRef.current.querySelectorAll<HTMLElement>("button"),
+      );
+      const activeButton = buttons[selectedIndex];
+      if (activeButton) {
+        const strip = thumbStripRef.current;
+        const targetX =
+          strip.clientWidth / 2 -
+          (activeButton.offsetLeft + activeButton.clientWidth / 2);
+        const minX = Math.min(0, strip.clientWidth - strip.scrollWidth);
+        const clampedX = Math.max(minX, Math.min(0, targetX));
+
+        gsap.to(strip, {
+          x: clampedX,
+          duration: 0.45,
+          ease: "power2.out",
+        });
+      }
+    }
+  }, [selectedIndex]);
+
   return (
     <section aria-label={`${title} slides`} className="mx-auto max-w-5xl">
-      <div className="overflow-hidden rounded-3xl border border-[#EAD2FF] bg-white shadow-[0_20px_50px_-38px_rgba(42,6,89,0.9)]">
+      <div className="overflow-hidden rounded-3xl border border-[#EAD2FF] bg-background shadow-[0_20px_50px_-38px_rgba(42,6,89,0.9)]">
         <div className="relative flex aspect-[16/9] w-full items-center justify-center bg-[#F8F1FF]">
           {hasPdf ? (
-            <div className="h-full w-full p-3">
-              <div className="h-full overflow-hidden rounded-2xl border border-[#EAD2FF] bg-white">
+            <div ref={frameRef} className="h-full w-full p-3">
+              <div className="h-full overflow-hidden rounded-2xl border border-[#EAD2FF] bg-background">
                 <iframe
                   src={`${pdfUrl}#page=${currentPage}&zoom=page-fit&view=FitH&pagemode=none&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0`}
                   title={`${title} page ${currentPage}`}
@@ -136,8 +194,8 @@ export function PresentationViewer({
               </div>
             </div>
           ) : slideCount > 0 ? (
-            <div className="h-full w-full p-3">
-              <div className="h-full overflow-hidden rounded-2xl border border-[#EAD2FF] bg-white">
+            <div ref={frameRef} className="h-full w-full p-3">
+              <div className="h-full overflow-hidden rounded-2xl border border-[#EAD2FF] bg-background">
                 <Image
                   src={fallbackSlides[selectedIndex].src}
                   alt={fallbackSlides[selectedIndex].alt}
@@ -189,43 +247,44 @@ export function PresentationViewer({
       ) : null}
 
       <div className="mt-4 overflow-hidden">
-        <div className="flex gap-3">
-          {(hasPdf ? pdfPageButtons : pageIndexes.map((index) => index + 1)).map(
-            (pageNumber) => {
-              const index = pageNumber - 1;
-              const isActive = index === selectedIndex;
+        <div ref={thumbStripRef} className="flex gap-3 will-change-transform">
+          {(hasPdf
+            ? pdfPageButtons
+            : pageIndexes.map((index) => index + 1)
+          ).map((pageNumber) => {
+            const index = pageNumber - 1;
+            const isActive = index === selectedIndex;
 
-              return (
-                <button
-                  key={`thumb-${pageNumber}`}
-                  type="button"
-                  onClick={() => scrollTo(index)}
-                  className={`min-w-[110px] flex-[0_0_auto] overflow-hidden rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                    isActive
-                      ? "border-[#B353FF] ring-2 ring-[#EAD2FF]"
-                      : "border-transparent hover:border-[#D9B1FF]"
-                  }`}
-                  aria-label={`Open slide ${pageNumber}`}
-                  aria-current={isActive}
-                >
-                  {hasPdf ? (
-                    <div className="flex h-16 w-[110px] items-center justify-center bg-white text-sm font-semibold text-[#2A0659]">
-                      Page {pageNumber}
-                    </div>
-                  ) : (
-                    <Image
-                      src={fallbackSlides[index].src}
-                      alt={fallbackSlides[index].alt}
-                      className="h-16 w-[110px] object-cover"
-                      loading="lazy"
-                      width={220}
-                      height={128}
-                    />
-                  )}
-                </button>
-              );
-            },
-          )}
+            return (
+              <button
+                key={`thumb-${pageNumber}`}
+                type="button"
+                onClick={() => scrollTo(index)}
+                className={`min-w-[110px] flex-[0_0_auto] overflow-hidden rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                  isActive
+                    ? "border-[#B353FF] ring-2 ring-[#EAD2FF]"
+                    : "border-transparent hover:border-[#D9B1FF]"
+                }`}
+                aria-label={`Open slide ${pageNumber}`}
+                aria-current={isActive}
+              >
+                {hasPdf ? (
+                  <div className="flex h-16 w-[110px] items-center justify-center bg-background text-sm font-semibold text-[#2A0659]">
+                    Page {pageNumber}
+                  </div>
+                ) : (
+                  <Image
+                    src={fallbackSlides[index].src}
+                    alt={fallbackSlides[index].alt}
+                    className="h-16 w-[110px] object-cover"
+                    loading="lazy"
+                    width={220}
+                    height={128}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>
