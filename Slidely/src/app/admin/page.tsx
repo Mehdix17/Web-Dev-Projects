@@ -6,7 +6,7 @@ import type { ManagedWork } from "@/lib/work-types";
 import { workCategories } from "@/lib/work-types";
 
 const ADMIN_PAGE_SIZE = 8;
-const MAX_PDF_SLIDE_PAGES = 24;
+const MAX_PDF_SLIDE_PAGES = 100; // Increased to support larger decks
 const TARGET_SLIDE_WIDTH = 1920;
 const TARGET_SLIDE_HEIGHT = 1080;
 
