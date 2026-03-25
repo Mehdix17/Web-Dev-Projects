@@ -11,11 +11,12 @@ gsap.registerPlugin(Flip);
 
 const categories: ("All" | WorkCategory)[] = [
   "All",
-  "Pitch Decks",
+  "Pitch Deck",
   "Keynote",
   "Sales",
   "Reports",
   "Course Materials",
+  "Educational",
 ];
 
 const PAGE_SIZE = 6;
@@ -146,8 +147,17 @@ export function GalleryClient({ initialWorks }: GalleryClientProps) {
       duration: 0.56,
       ease: "power2.out",
       scale: true,
+      absolute: true,
       targets: nextCards,
       stagger: 0.03,
+      onEnter: (elements) =>
+        gsap.fromTo(
+          elements,
+          { opacity: 0, scale: 0.9 },
+          { opacity: 1, scale: 1, duration: 0.4 }
+        ),
+      onLeave: (elements) =>
+        gsap.to(elements, { opacity: 0, scale: 0.9, duration: 0.3 }),
       onComplete: () => {
         pendingFlipState.current = null;
         pendingRegionHeight.current = null;
@@ -244,31 +254,31 @@ export function GalleryClient({ initialWorks }: GalleryClientProps) {
           <>
             <div
               ref={gridRef}
-              className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+              className="relative grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
             >
               {visible.map((project) => (
-                <Link
-                  data-gallery-card
-                  key={project.slug}
-                  href={`/gallery/${project.slug}`}
-                  className="group rounded-2xl border border-gray-200 bg-white p-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-lg focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-gray-800 dark:bg-gray-950"
-                >
-                  <Image
-                    src={project.thumbnail}
-                    alt={`${project.title} thumbnail`}
-                    className="h-52 w-full rounded-xl object-cover"
-                    loading="lazy"
-                    sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
-                    width={900}
-                    height={600}
-                  />
-                  <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                    {project.category}
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold">
-                    {project.title}
-                  </h2>
-                </Link>
+                <div data-gallery-card key={project.slug} className="block">
+                  <Link
+                    href={`/gallery/${project.slug}`}
+                    className="group block h-full rounded-2xl border border-gray-200 bg-white p-4 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-lg focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-gray-800 dark:bg-gray-950"
+                  >
+                    <Image
+                      src={project.thumbnail}
+                      alt={`${project.title} thumbnail`}
+                      className="h-52 w-full rounded-xl object-cover"
+                      loading="lazy"
+                      sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+                      width={900}
+                      height={600}
+                    />
+                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                      {project.category}
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold">
+                      {project.title}
+                    </h2>
+                  </Link>
+                </div>
               ))}
             </div>
 
