@@ -184,7 +184,11 @@ export function PresentationViewer({
       <div className="overflow-hidden rounded-3xl border border-[#EAD2FF] bg-background shadow-[0_20px_50px_-38px_rgba(42,6,89,0.9)]">
         <div className="relative flex aspect-[16/9] w-full items-center justify-center bg-[#F8F1FF]">
           {hasPdf ? (
-            <div key={`pdf-${currentPage}`} ref={frameRef} className="h-full w-full p-3">
+            <div
+              key={`pdf-${currentPage}`}
+              ref={frameRef}
+              className="h-full w-full p-3"
+            >
               <div className="h-full overflow-hidden rounded-2xl border border-[#EAD2FF] bg-background">
                 <iframe
                   src={`${pdfUrl}#page=${currentPage}&zoom=page-fit&view=FitH&pagemode=none&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0`}
@@ -196,7 +200,11 @@ export function PresentationViewer({
               </div>
             </div>
           ) : slideCount > 0 ? (
-            <div key={`img-${currentPage}`} ref={frameRef} className="h-full w-full p-3">
+            <div
+              key={`img-${currentPage}`}
+              ref={frameRef}
+              className="h-full w-full p-3"
+            >
               <div className="h-full overflow-hidden rounded-2xl border border-[#EAD2FF] bg-background">
                 <Image
                   src={fallbackSlides[selectedIndex].src}
@@ -289,6 +297,34 @@ export function PresentationViewer({
           })}
         </div>
       </div>
+
+      {/* Preload upcoming images for smooth transitions */}
+      {!hasPdf && (
+        <div style={{ display: "none" }} aria-hidden="true">
+          {fallbackSlides
+            .slice(selectedIndex + 1, selectedIndex + 3)
+            .map((slide) => (
+              <Image
+                key={`preload-next-${slide.src}`}
+                src={slide.src}
+                alt=""
+                width={1400}
+                height={900}
+                priority
+              />
+            ))}
+          {selectedIndex > 0 && (
+            <Image
+              key={`preload-prev-${fallbackSlides[selectedIndex - 1].src}`}
+              src={fallbackSlides[selectedIndex - 1].src}
+              alt=""
+              width={1400}
+              height={900}
+              priority
+            />
+          )}
+        </div>
+      )}
     </section>
   );
 }
