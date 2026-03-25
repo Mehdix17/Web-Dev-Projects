@@ -154,7 +154,7 @@ export function GalleryClient({ initialWorks }: GalleryClientProps) {
         gsap.fromTo(
           elements,
           { opacity: 0, scale: 0.9 },
-          { opacity: 1, scale: 1, duration: 0.4 }
+          { opacity: 1, scale: 1, duration: 0.4 },
         ),
       onLeave: (elements) =>
         gsap.to(elements, { opacity: 0, scale: 0.9, duration: 0.3 }),
