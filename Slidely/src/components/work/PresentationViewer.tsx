@@ -138,9 +138,10 @@ export function PresentationViewer({
       gsap.fromTo(
         frameRef.current,
         {
-          opacity: 0.45,
-          x: direction * 24,
-          rotateY: direction * 4,
+          opacity: 0,
+          x: direction * 40,
+          rotateY: direction * 5,
+          scale: 0.98,
           transformPerspective: 1200,
           transformOrigin: "center center",
         },
@@ -148,8 +149,9 @@ export function PresentationViewer({
           opacity: 1,
           x: 0,
           rotateY: 0,
-          duration: 0.48,
-          ease: "power2.out",
+          scale: 1,
+          duration: 0.75,
+          ease: "power3.out",
           clearProps: "transform",
         },
       );
@@ -182,7 +184,7 @@ export function PresentationViewer({
       <div className="overflow-hidden rounded-3xl border border-[#EAD2FF] bg-background shadow-[0_20px_50px_-38px_rgba(42,6,89,0.9)]">
         <div className="relative flex aspect-[16/9] w-full items-center justify-center bg-[#F8F1FF]">
           {hasPdf ? (
-            <div ref={frameRef} className="h-full w-full p-3">
+            <div key={`pdf-${currentPage}`} ref={frameRef} className="h-full w-full p-3">
               <div className="h-full overflow-hidden rounded-2xl border border-[#EAD2FF] bg-background">
                 <iframe
                   src={`${pdfUrl}#page=${currentPage}&zoom=page-fit&view=FitH&pagemode=none&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0`}
@@ -194,7 +196,7 @@ export function PresentationViewer({
               </div>
             </div>
           ) : slideCount > 0 ? (
-            <div ref={frameRef} className="h-full w-full p-3">
+            <div key={`img-${currentPage}`} ref={frameRef} className="h-full w-full p-3">
               <div className="h-full overflow-hidden rounded-2xl border border-[#EAD2FF] bg-background">
                 <Image
                   src={fallbackSlides[selectedIndex].src}
