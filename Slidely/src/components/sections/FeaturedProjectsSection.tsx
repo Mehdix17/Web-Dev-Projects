@@ -35,14 +35,14 @@ export async function FeaturedProjectsSection() {
       ) : (
         <div
           data-featured-grid
-          className="grid grid-cols-1 gap-4 md:grid-cols-6 md:grid-rows-[260px_220px_220px]"
+          className="grid grid-cols-1 gap-4 md:grid-cols-6 md:grid-rows-[minmax(280px,auto)_minmax(260px,auto)_minmax(260px,auto)]"
         >
           {featured.map((project, index) => (
             <Link
               data-featured-card
               key={project.slug}
               href={`/gallery/${project.slug}`}
-              className={`group focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl ${
+              className={`group block focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl ${
                 index === 0
                   ? "md:col-span-4 md:row-span-2"
                   : index === 1
@@ -54,27 +54,30 @@ export async function FeaturedProjectsSection() {
                         : "md:col-span-2 md:row-span-1"
               }`}
             >
-              <Card className="h-full overflow-hidden pb-4 transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-primary">
-                <Image
-                  src={project.thumbnail}
-                  alt={`${project.title} thumbnail`}
-                  className={`mb-4 w-full rounded-xl object-cover ${
-                    index === 0 ? "h-[72%] md:h-[78%]" : "h-44 md:h-[68%]"
-                  }`}
-                  priority={index === 0}
-                  loading={index === 0 ? "eager" : "lazy"}
-                  sizes={
-                    index === 0
-                      ? "(min-width: 768px) 66vw, 100vw"
-                      : "(min-width: 768px) 33vw, 100vw"
-                  }
-                  width={900}
-                  height={600}
-                />
-                <p className="mt-auto text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                  {project.category}
-                </p>
-                <h3 className="mt-2 text-xl font-semibold">{project.title}</h3>
+              <Card className="flex h-full flex-col overflow-hidden pb-4 transition-all duration-200 group-hover:-translate-y-1 group-hover:border-primary group-hover:shadow-lg">
+                <div className="relative mb-4 w-full flex-1 min-h-[140px] overflow-hidden rounded-xl">
+                  <Image
+                    src={project.thumbnail}
+                    alt={`${project.title} thumbnail`}
+                    className="object-cover"
+                    fill
+                    priority={index === 0}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    sizes={
+                      index === 0
+                        ? "(min-width: 768px) 66vw, 100vw"
+                        : "(min-width: 768px) 33vw, 100vw"
+                    }
+                  />
+                </div>
+                <div className="shrink-0 px-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                    {project.category}
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                    {project.title}
+                  </h3>
+                </div>
               </Card>
             </Link>
           ))}
