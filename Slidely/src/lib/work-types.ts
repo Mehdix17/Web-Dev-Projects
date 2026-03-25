@@ -1,9 +1,10 @@
 export type WorkCategory =
-  | "Pitch Decks"
+  | "Pitch Deck"
   | "Keynote"
   | "Sales"
   | "Reports"
-  | "Course Materials";
+  | "Course Materials"
+  | "Educational";
 
 export interface ManagedWork {
   slug: string;
@@ -20,9 +21,10 @@ export interface ManagedWork {
 }
 
 export const workCategories: WorkCategory[] = [
-  "Pitch Decks",
+  "Pitch Deck",
   "Keynote",
   "Sales",
   "Reports",
   "Course Materials",
+  "Educational",
 ];

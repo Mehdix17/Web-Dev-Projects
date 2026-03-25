@@ -1,4 +1,4 @@
-export type ProjectCategory = "Pitch Decks" | "Keynote" | "Sales" | "Reports";
+export type ProjectCategory = "Pitch Deck" | "Keynote" | "Sales" | "Reports" | "Educational";
 
 export interface Project {
   slug: string;
@@ -72,7 +72,7 @@ export const projects: Project[] = [
   makeProject(
     "atlas-fundraise",
     "Atlas Series A Fundraise",
-    "Pitch Decks",
+    "Pitch Deck",
     "Atlas Labs",
     2025,
   ),
@@ -107,7 +107,7 @@ export const projects: Project[] = [
   makeProject(
     "strata-enterprise",
     "Strata Enterprise Pitch",
-    "Pitch Decks",
+    "Pitch Deck",
     "Strata AI",
     2026,
   ),
@@ -128,7 +128,7 @@ export const projects: Project[] = [
   makeProject(
     "arc-growth",
     "Arc Growth Narrative",
-    "Pitch Decks",
+    "Pitch Deck",
     "Arc Motion",
     2024,
   ),

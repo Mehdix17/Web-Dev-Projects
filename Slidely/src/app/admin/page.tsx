@@ -32,7 +32,7 @@ type ToastState = {
 const emptyForm: WorkFormState = {
   slug: "",
   title: "",
-  category: "Pitch Decks",
+  category: "Pitch Deck",
   year: String(new Date().getFullYear()),
   client: "",
   role: "Presentation Designer",
