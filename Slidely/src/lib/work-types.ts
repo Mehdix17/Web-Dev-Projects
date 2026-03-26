@@ -14,6 +14,7 @@ export interface ManagedWork {
   client: string;
   role: string;
   featured: boolean;
+  featuredOrder: number | null;
   thumbnail: string;
   pdfUrl: string;
   summary: string;

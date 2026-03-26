@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { ManagedWork } from "@/lib/work-types";
 import { workCategories } from "@/lib/work-types";
+import { Card } from "@/components/ui/Card";
 
 const ADMIN_PAGE_SIZE = 8;
 const MAX_PDF_SLIDE_PAGES = 100; // Increased to support larger decks
@@ -59,6 +61,14 @@ function toForm(work: ManagedWork): WorkFormState {
   };
 }
 
+function normalizeFeaturedOrder(value: number | null | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  return Math.floor(value);
+}
+
 export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -78,6 +88,10 @@ export default function AdminPage() {
   const [togglingFeaturedSlug, setTogglingFeaturedSlug] = useState<
     string | null
   >(null);
+  const [draggingFeaturedSlug, setDraggingFeaturedSlug] = useState<
+    string | null
+  >(null);
+  const [isSavingFeaturedOrder, setIsSavingFeaturedOrder] = useState(false);
   const [editFromQuery, setEditFromQuery] = useState("");
   const [toast, setToast] = useState<ToastState>(null);
 
@@ -121,6 +135,23 @@ export default function AdminPage() {
       return value.includes(query);
     });
   }, [works, searchQuery]);
+
+  const orderedFeaturedWorks = useMemo(
+    () =>
+      works
+        .filter((work) => work.featured)
+        .sort((a, b) => {
+          const aOrder = normalizeFeaturedOrder(a.featuredOrder);
+          const bOrder = normalizeFeaturedOrder(b.featuredOrder);
+
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+
+          return a.title.localeCompare(b.title);
+        }),
+    [works],
+  );
 
   const totalPages = Math.max(
     1,
@@ -427,6 +458,10 @@ export default function AdminPage() {
 
     setIsSaving(true);
 
+    const existingWork = editingSlug
+      ? works.find((work) => work.slug === editingSlug)
+      : null;
+
     const payload = {
       slug: form.slug,
       title: form.title,
@@ -435,6 +470,9 @@ export default function AdminPage() {
       client: form.client,
       role: form.role,
       featured: form.featured,
+      featuredOrder: form.featured
+        ? (existingWork?.featuredOrder ?? null)
+        : null,
       thumbnail: form.thumbnailUrl,
       pdfUrl: form.pdfUrl,
       slides: form.slideUrls,
@@ -526,12 +564,19 @@ export default function AdminPage() {
 
   const toggleFeatured = async (work: ManagedWork) => {
     const nextFeatured = !work.featured;
+    const nextFeaturedOrder = nextFeatured ? orderedFeaturedWorks.length : null;
     setTogglingFeaturedSlug(work.slug);
     setFormError("");
 
     setWorks((prev) =>
       prev.map((item) =>
-        item.slug === work.slug ? { ...item, featured: nextFeatured } : item,
+        item.slug === work.slug
+          ? {
+              ...item,
+              featured: nextFeatured,
+              featuredOrder: nextFeaturedOrder,
+            }
+          : item,
       ),
     );
 
@@ -548,6 +593,7 @@ export default function AdminPage() {
         client: work.client,
         role: work.role,
         featured: nextFeatured,
+        featuredOrder: nextFeaturedOrder,
         thumbnail: work.thumbnail,
         pdfUrl: work.pdfUrl,
         slides: work.slides || [],
@@ -585,7 +631,13 @@ export default function AdminPage() {
     } catch (error) {
       setWorks((prev) =>
         prev.map((item) =>
-          item.slug === work.slug ? { ...item, featured: work.featured } : item,
+          item.slug === work.slug
+            ? {
+                ...item,
+                featured: work.featured,
+                featuredOrder: work.featuredOrder,
+              }
+            : item,
         ),
       );
 
@@ -604,10 +656,86 @@ export default function AdminPage() {
     }
   };
 
+  const persistFeaturedOrder = async (orderedSlugs: string[]) => {
+    setIsSavingFeaturedOrder(true);
+    try {
+      const response = await fetch("/api/admin/works/featured-order", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedSlugs }),
+      });
+
+      const raw = await response.text();
+      const data = raw ? (JSON.parse(raw) as { error?: string }) : null;
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            `Unable to save featured order (status ${response.status}).`,
+        );
+      }
+
+      showToast("success", "Featured layout updated.");
+      await fetchWorks();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to save featured layout right now.";
+      setFormError(message);
+      showToast("error", message);
+      await fetchWorks();
+    } finally {
+      setIsSavingFeaturedOrder(false);
+    }
+  };
+
+  const moveFeaturedProject = async (
+    sourceSlug: string,
+    targetSlug: string,
+  ) => {
+    if (!sourceSlug || !targetSlug || sourceSlug === targetSlug) {
+      return;
+    }
+
+    const current = [...orderedFeaturedWorks];
+    const fromIndex = current.findIndex((item) => item.slug === sourceSlug);
+    const toIndex = current.findIndex((item) => item.slug === targetSlug);
+
+    if (fromIndex < 0 || toIndex < 0) {
+      return;
+    }
+
+    const next = [...current];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+
+    const orderLookup = new Map(
+      next.map((item, index) => [item.slug, index] as const),
+    );
+
+    setWorks((prev) =>
+      prev.map((item) => {
+        if (!item.featured) {
+          return item;
+        }
+
+        const featuredOrder = orderLookup.get(item.slug);
+        return {
+          ...item,
+          featuredOrder:
+            typeof featuredOrder === "number" ? featuredOrder : null,
+        };
+      }),
+    );
+
+    await persistFeaturedOrder(next.map((item) => item.slug));
+  };
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
-        <p className="text-center text-sm font-semibold text-[#2A0659]/70">
+        <p className="text-center text-sm font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
           Loading admin area...
         </p>
       </div>
@@ -617,21 +745,21 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16">
-        <div className="rounded-3xl border border-[#EAD2FF] bg-background p-8 shadow-[0_20px_50px_-38px_rgba(42,6,89,0.9)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7A21C8]">
+        <div className="rounded-3xl border border-[#EAD2FF] bg-background p-8 shadow-[0_20px_50px_-38px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:bg-[#1A0E2C]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7A21C8] dark:text-[#CFA9FF]">
             Admin Access
           </p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-[#2A0659]">
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
             Slidely Admin
           </h1>
-          <p className="mt-3 text-sm text-[#2A0659]/70">
+          <p className="mt-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
             Sign in to manage your work portfolio with secure CRUD controls.
           </p>
 
           <form className="mt-6 space-y-4" onSubmit={handleLogin}>
             <div>
               <label
-                className="mb-1 block text-sm font-semibold text-[#2A0659]"
+                className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]"
                 htmlFor="admin-username"
               >
                 Username
@@ -640,7 +768,7 @@ export default function AdminPage() {
                 id="admin-username"
                 value={adminUsername}
                 onChange={(event) => setAdminUsername(event.target.value)}
-                className="w-full rounded-xl border border-[#D9B1FF] px-4 py-3 text-sm text-[#2A0659] outline-none transition-colors focus:border-[#7A21C8]"
+                className="w-full rounded-xl border border-[#D9B1FF] bg-white px-4 py-3 text-sm text-[#2A0659] outline-none transition-colors focus:border-[#7A21C8] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                 autoComplete="username"
                 required
               />
@@ -648,7 +776,7 @@ export default function AdminPage() {
 
             <div>
               <label
-                className="mb-1 block text-sm font-semibold text-[#2A0659]"
+                className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]"
                 htmlFor="admin-password"
               >
                 Password
@@ -658,7 +786,7 @@ export default function AdminPage() {
                 type="password"
                 value={adminPassword}
                 onChange={(event) => setAdminPassword(event.target.value)}
-                className="w-full rounded-xl border border-[#D9B1FF] px-4 py-3 text-sm text-[#2A0659] outline-none transition-colors focus:border-[#7A21C8]"
+                className="w-full rounded-xl border border-[#D9B1FF] bg-white px-4 py-3 text-sm text-[#2A0659] outline-none transition-colors focus:border-[#7A21C8] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                 autoComplete="current-password"
                 required
               />
@@ -670,7 +798,7 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center rounded-full bg-[#2A0659] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#B353FF] hover:text-[#2A0659]"
+              className="inline-flex w-full items-center justify-center rounded-full bg-[#2A0659] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#B353FF] hover:text-white"
             >
               Sign In
             </button>
@@ -700,16 +828,16 @@ export default function AdminPage() {
         </div>
       ) : null}
 
-      <section className="rounded-3xl border border-[#EAD2FF] bg-gradient-to-br from-white via-[#FCF8FF] to-[#F7EFFF] p-6 shadow-[0_28px_60px_-44px_rgba(42,6,89,0.9)] md:p-8">
+      <section className="rounded-3xl border border-[#EAD2FF] bg-gradient-to-br from-white via-[#FCF8FF] to-[#F7EFFF] p-6 shadow-[0_28px_60px_-44px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:from-[#1A0E2C] dark:via-[#211136] dark:to-[#2A1544] md:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7A21C8]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7A21C8] dark:text-[#CFA9FF]">
               Admin Dashboard
             </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-[#2A0659] md:text-4xl">
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF] md:text-4xl">
               Portfolio Dashboard
             </h1>
-            <p className="mt-2 text-sm text-[#2A0659]/70">
+            <p className="mt-2 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
               You are signed in as admin. Browse the public website normally and
               manage portfolio data from this dashboard.
             </p>
@@ -718,21 +846,21 @@ export default function AdminPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/gallery"
-              className="rounded-full border border-[#D9B1FF] bg-background px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:bg-[#F8F1FF]"
+              className="rounded-full border border-[#D9B1FF] bg-background px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:bg-[#F8F1FF] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
             >
               View public site
             </Link>
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-full border border-[#D9B1FF] bg-background px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:bg-[#F8F1FF]"
+              className="rounded-full border border-[#D9B1FF] bg-background px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:bg-[#F8F1FF] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
             >
               New project draft
             </button>
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-full border border-[#D9B1FF] px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:border-[#B353FF] hover:bg-[#F8F1FF]"
+              className="rounded-full border border-[#D9B1FF] px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:border-[#B353FF] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
             >
               Logout
             </button>
@@ -740,35 +868,35 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4 dark:border-[#5A3D7A] dark:bg-[#1B0C30]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8] dark:text-[#CFA9FF]">
               Total Projects
             </p>
-            <p className="mt-2 text-3xl font-black text-[#2A0659]">
+            <p className="mt-2 text-3xl font-black text-[#2A0659] dark:text-[#F8EEFF]">
               {works.length}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4 dark:border-[#5A3D7A] dark:bg-[#1B0C30]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8] dark:text-[#CFA9FF]">
               Unique Clients
             </p>
-            <p className="mt-2 text-3xl font-black text-[#2A0659]">
+            <p className="mt-2 text-3xl font-black text-[#2A0659] dark:text-[#F8EEFF]">
               {uniqueClients}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4 dark:border-[#5A3D7A] dark:bg-[#1B0C30]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8] dark:text-[#CFA9FF]">
               Needs Completion
             </p>
-            <p className="mt-2 text-3xl font-black text-[#2A0659]">
+            <p className="mt-2 text-3xl font-black text-[#2A0659] dark:text-[#F8EEFF]">
               {worksMissingAssets}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
+          <div className="rounded-2xl border border-[#EAD2FF] bg-background p-4 dark:border-[#5A3D7A] dark:bg-[#1B0C30]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8] dark:text-[#CFA9FF]">
               Active Filter
             </p>
-            <p className="mt-2 text-3xl font-black text-[#2A0659]">
+            <p className="mt-2 text-3xl font-black text-[#2A0659] dark:text-[#F8EEFF]">
               {searchQuery.trim() ? "On" : "Off"}
             </p>
           </div>
@@ -776,12 +904,12 @@ export default function AdminPage() {
       </section>
 
       <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[1.35fr_1fr]">
-        <section className="rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)]">
+        <section className="rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:bg-[#1A0E2C]">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-xl font-black tracking-tight text-[#2A0659]">
+            <h2 className="text-xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
               Portfolio projects
             </h2>
-            <p className="text-xs font-semibold text-[#2A0659]/70">
+            <p className="text-xs font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
               {filteredWorks.length} matching result(s)
             </p>
           </div>
@@ -792,44 +920,47 @@ export default function AdminPage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search by title, client, category, slug"
-              className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm text-[#2A0659] outline-none focus:border-[#7A21C8]"
+              className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] outline-none focus:border-[#7A21C8] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
             />
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[#F0DFFF]">
+          <div className="mt-5 overflow-hidden rounded-2xl border border-[#F0DFFF] dark:border-[#5A3D7A]">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-[#FCF8FF] text-left">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8]">
+                <tr className="bg-[#FCF8FF] text-left dark:bg-[#2A1842]">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
                     Title
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8]">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
                     Category
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8]">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
                     Year
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8]">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
                     Featured
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8]">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {visibleWorks.map((work) => (
-                  <tr key={work.slug} className="border-t border-[#F0DFFF]">
-                    <td className="px-4 py-3 text-sm font-semibold text-[#2A0659]">
+                  <tr
+                    key={work.slug}
+                    className="border-t border-[#F0DFFF] dark:border-[#5A3D7A]"
+                  >
+                    <td className="px-4 py-3 text-sm font-semibold text-[#2A0659] dark:text-[#F8EEFF]">
                       {work.title}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#2A0659]/70">
+                    <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
                       {work.category}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#2A0659]/70">
+                    <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
                       {work.year}
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-[#2A0659]/80">
+                    <td className="px-4 py-3 text-sm font-semibold text-[#2A0659]/80 dark:text-[#EAD9FF]/92">
                       <button
                         type="button"
                         aria-label={
@@ -858,13 +989,13 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => startEdit(work)}
-                          className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF]"
+                          className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
                         >
                           Edit
                         </button>
                         <Link
                           href={`/gallery/${work.slug}`}
-                          className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF]"
+                          className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
                         >
                           Preview
                         </Link>
@@ -883,7 +1014,7 @@ export default function AdminPage() {
                 {visibleWorks.length === 0 ? (
                   <tr>
                     <td
-                      className="px-4 py-6 text-center text-sm font-semibold text-[#2A0659]/70"
+                      className="px-4 py-6 text-center text-sm font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88"
                       colSpan={5}
                     >
                       No project matches your search.
@@ -895,7 +1026,7 @@ export default function AdminPage() {
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-xs font-semibold text-[#2A0659]/70">
+            <p className="text-xs font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
               Page {Math.min(currentPage, totalPages)} of {totalPages}
             </p>
             <div className="flex gap-2">
@@ -903,7 +1034,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                 disabled={currentPage <= 1}
-                className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] disabled:opacity-40"
+                className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] disabled:opacity-40 dark:border-[#715095] dark:text-[#F8EEFF]"
               >
                 Previous
               </button>
@@ -913,16 +1044,88 @@ export default function AdminPage() {
                   setCurrentPage((page) => Math.min(totalPages, page + 1))
                 }
                 disabled={currentPage >= totalPages}
-                className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] disabled:opacity-40"
+                className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] disabled:opacity-40 dark:border-[#715095] dark:text-[#F8EEFF]"
               >
                 Next
               </button>
             </div>
           </div>
+
+          <div className="mt-6 rounded-2xl border border-[#F0DFFF] bg-[#FCF8FF]/80 p-4 dark:border-[#5A3D7A] dark:bg-[#221337]">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
+                Featured projects layout
+              </h3>
+              <span className="text-xs font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
+                Drag to reorder home grid
+              </span>
+            </div>
+
+            {orderedFeaturedWorks.length === 0 ? (
+              <p className="mt-3 text-sm font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
+                Mark at least one project as featured to customize layout.
+              </p>
+            ) : (
+              <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-6 md:grid-rows-[minmax(180px,auto)_minmax(140px,auto)_minmax(140px,auto)]">
+                {orderedFeaturedWorks.slice(0, 5).map((work, index) => (
+                  <button
+                    key={work.slug}
+                    type="button"
+                    draggable
+                    onDragStart={() => setDraggingFeaturedSlug(work.slug)}
+                    onDragEnd={() => setDraggingFeaturedSlug(null)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      if (!draggingFeaturedSlug) return;
+                      void moveFeaturedProject(draggingFeaturedSlug, work.slug);
+                    }}
+                    className={`group block focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl ${
+                      index === 0
+                        ? "md:col-span-4 md:row-span-2"
+                        : "md:col-span-2 md:row-span-1"
+                    } ${
+                      draggingFeaturedSlug === work.slug
+                        ? "ring-2 ring-offset-2 ring-primary"
+                        : ""
+                    } ${isSavingFeaturedOrder ? "opacity-70" : ""}`}
+                    disabled={isSavingFeaturedOrder}
+                  >
+                    <Card className="flex h-full flex-col overflow-hidden pb-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-lg">
+                      <div className="relative mb-4 w-full flex-1 min-h-[120px] overflow-hidden rounded-xl">
+                        <Image
+                          src={work.thumbnail || "/placeholder.jpg"}
+                          alt={`${work.title} thumbnail`}
+                          className="object-cover"
+                          fill
+                          sizes={
+                            index === 0
+                              ? "(min-width: 768px) 66vw, 100vw"
+                              : "(min-width: 768px) 33vw, 100vw"
+                          }
+                        />
+                      </div>
+                      <div className="shrink-0 px-1">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                          {work.category}
+                        </p>
+                        <h3 className="mt-2 text-lg font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                          {work.title}
+                        </h3>
+                        <p className="mt-1 text-xs font-medium text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
+                          Slot {index + 1}
+                        </p>
+                      </div>
+                    </Card>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
-        <section className="rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)]">
-          <h2 className="text-xl font-black tracking-tight text-[#2A0659]">
+        <section className="rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:bg-[#1A0E2C]">
+          <h2 className="text-xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
             {isEditing ? "Edit project" : "Add new project"}
           </h2>
           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
@@ -933,7 +1136,7 @@ export default function AdminPage() {
 
           <form className="mt-5 space-y-4" onSubmit={submitForm}>
             <div>
-              <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                 Title
               </label>
               <input
@@ -941,14 +1144,14 @@ export default function AdminPage() {
                 onChange={(event) =>
                   handleFormChange("title", event.target.value)
                 }
-                className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+                <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                   Slug
                 </label>
                 <input
@@ -956,12 +1159,12 @@ export default function AdminPage() {
                   onChange={(event) =>
                     handleFormChange("slug", event.target.value)
                   }
-                  className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                   required
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+                <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                   Year
                 </label>
                 <input
@@ -969,7 +1172,7 @@ export default function AdminPage() {
                   onChange={(event) =>
                     handleFormChange("year", event.target.value)
                   }
-                  className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                   required
                 />
               </div>
@@ -977,7 +1180,7 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+                <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                   Category
                 </label>
                 <select
@@ -988,7 +1191,7 @@ export default function AdminPage() {
                       event.target.value as ManagedWork["category"],
                     )
                   }
-                  className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                   required
                 >
                   {workCategories.map((category) => (
@@ -999,7 +1202,7 @@ export default function AdminPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+                <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                   Client
                 </label>
                 <input
@@ -1007,14 +1210,14 @@ export default function AdminPage() {
                   onChange={(event) =>
                     handleFormChange("client", event.target.value)
                   }
-                  className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                 Role
               </label>
               <input
@@ -1022,17 +1225,17 @@ export default function AdminPage() {
                 onChange={(event) =>
                   handleFormChange("role", event.target.value)
                 }
-                className="w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                 required
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                 Thumbnail image
               </label>
               <div className="mt-2 flex items-center gap-2">
-                <label className="rounded-full border border-[#D9B1FF] px-3 py-1.5 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] cursor-pointer">
+                <label className="cursor-pointer rounded-full border border-[#D9B1FF] px-3 py-1.5 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]">
                   {isUploadingThumb ? "Uploading..." : "Upload thumbnail"}
                   <input
                     type="file"
@@ -1054,11 +1257,11 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                 Presentation PDF (landscape)
               </label>
               <div className="mt-2 flex items-center gap-2">
-                <label className="rounded-full border border-[#D9B1FF] px-3 py-1.5 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] cursor-pointer">
+                <label className="cursor-pointer rounded-full border border-[#D9B1FF] px-3 py-1.5 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]">
                   {isUploadingPdf ? "Uploading + converting..." : "Upload PDF"}
                   <input
                     type="file"
@@ -1080,7 +1283,7 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-semibold text-[#2A0659]">
+              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                 Quick description
               </label>
               <textarea
@@ -1088,7 +1291,7 @@ export default function AdminPage() {
                 onChange={(event) =>
                   handleFormChange("summary", event.target.value)
                 }
-                className="min-h-[90px] w-full rounded-xl border border-[#D9B1FF] px-3 py-2 text-sm"
+                className="min-h-[90px] w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                 required
               />
             </div>
@@ -1101,7 +1304,7 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="rounded-full bg-[#2A0659] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#B353FF] hover:text-[#2A0659] disabled:opacity-60"
+                className="rounded-full bg-[#2A0659] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#B353FF] hover:text-white disabled:opacity-60"
               >
                 {isSaving
                   ? "Saving..."
@@ -1113,7 +1316,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-full border border-[#D9B1FF] px-5 py-2 text-sm font-semibold text-[#2A0659]"
+                  className="rounded-full border border-[#D9B1FF] px-5 py-2 text-sm font-semibold text-[#2A0659] dark:border-[#715095] dark:text-[#F8EEFF]"
                 >
                   Cancel
                 </button>

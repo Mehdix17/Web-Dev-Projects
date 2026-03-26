@@ -1,11 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Card } from "@/components/ui/Card";
-import { getWorks } from "@/lib/work-store";
+import { getFeaturedWorksInOrder, getWorks } from "@/lib/work-store";
 
 export async function FeaturedProjectsSection() {
   const works = await getWorks();
-  const featured = works.filter((work) => work.featured).slice(0, 5);
+  const featured = getFeaturedWorksInOrder(works).slice(0, 5);
 
   return (
     <section
@@ -29,7 +29,7 @@ export async function FeaturedProjectsSection() {
       </div>
 
       {featured.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#D9B1FF] bg-background px-6 py-10 text-center text-sm font-semibold text-[#2A0659]/70">
+        <div className="rounded-2xl border border-dashed border-[#D9B1FF] bg-background px-6 py-10 text-center text-sm font-semibold text-[#2A0659]/70 dark:border-[#715095] dark:text-[#EAD9FF]/88">
           No featured projects yet. Mark projects as featured in the dashboard.
         </div>
       ) : (

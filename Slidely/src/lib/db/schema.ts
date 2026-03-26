@@ -16,6 +16,7 @@ export const works = pgTable("works", {
   client: text("client").notNull(),
   role: text("role").notNull(),
   featured: boolean("featured").notNull().default(false),
+  featuredOrder: integer("featured_order"),
   thumbnail: text("thumbnail").notNull(),
   pdfUrl: text("pdf_url").notNull(),
   summary: text("summary").notNull(),

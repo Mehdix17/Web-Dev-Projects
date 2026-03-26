@@ -13,6 +13,8 @@ const dataDir = path.join(process.cwd(), "data");
 const dataFile = path.join(dataDir, "works.json");
 let hasLoggedDbFallback = false;
 
+const seedWorks: ManagedWork[] = projects.map(toManagedWork);
+
 function hasDatabaseUrl() {
   return Boolean(process.env.DATABASE_URL);
 }
@@ -29,6 +31,46 @@ function reportDatabaseFallback(error: unknown) {
   );
 }
 
+function sanitizeSlug(input: unknown): string {
+  return String(input || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function normalizeSlides(slides: unknown[]): string[] {
+  if (!Array.isArray(slides)) return [];
+
+  return [
+    ...new Set(slides.map((value) => String(value).trim()).filter(Boolean)),
+  ];
+}
+
+function mapDbWorkToManagedWork(work: WorkRow): ManagedWork {
+  return {
+    slug: work.slug,
+    title: work.title,
+    category: work.category as WorkCategory,
+    year: work.year,
+    client: work.client,
+    role: work.role,
+    featured: Boolean(work.featured),
+    featuredOrder: work.featured
+      ? normalizeFeaturedOrder(work.featuredOrder)
+      : null,
+    thumbnail: work.thumbnail,
+    pdfUrl: work.pdfUrl,
+    summary: work.summary,
+    slides:
+      Array.isArray(work.slides) && work.slides.length
+        ? work.slides
+        : undefined,
+  };
+}
+
 function toManagedWork(project: (typeof projects)[number]): ManagedWork {
   return {
     slug: project.slug,
@@ -38,6 +80,7 @@ function toManagedWork(project: (typeof projects)[number]): ManagedWork {
     client: project.client,
     role: project.role,
     featured: false,
+    featuredOrder: null,
     thumbnail: project.thumbnail,
     pdfUrl: "",
     summary: project.challenge[0],
@@ -45,22 +88,13 @@ function toManagedWork(project: (typeof projects)[number]): ManagedWork {
   };
 }
 
-const seedWorks: ManagedWork[] = projects.map(toManagedWork);
+function normalizeFeaturedOrder(value: unknown): number | null {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return null;
+  }
 
-function sanitizeSlug(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
-function normalizeSlides(slides: string[]) {
-  const unique = Array.from(
-    new Set(slides.map((value) => value.trim()).filter(Boolean)),
-  );
-  return unique;
+  return Math.floor(numeric);
 }
 
 type RawWork = Partial<ManagedWork> & {
@@ -76,25 +110,17 @@ function normalizeStoredWork(raw: RawWork): ManagedWork {
 
   return {
     ...normalized,
-    slides: normalizedSlides,
-  };
-}
-
-function mapDbWorkToManagedWork(work: WorkRow): ManagedWork {
-  const normalizedSlides = normalizeSlides(work.slides || []);
-
-  return {
-    slug: work.slug,
-    title: work.title,
-    category: work.category as WorkCategory,
-    year: work.year,
-    client: work.client,
-    role: work.role,
-    featured: Boolean(work.featured),
-    thumbnail: work.thumbnail,
-    pdfUrl: work.pdfUrl,
-    summary: work.summary,
-    slides: normalizedSlides.length ? normalizedSlides : undefined,
+    role: raw.role ?? normalized.role,
+    featuredOrder: Boolean(raw.featured)
+      ? normalizeFeaturedOrder(raw.featuredOrder)
+      : null,
+    thumbnail: raw.thumbnail ?? normalized.thumbnail,
+    pdfUrl: raw.pdfUrl ?? normalized.pdfUrl,
+    summary: raw.summary ?? normalized.summary,
+    slides:
+      normalizedSlides && normalizedSlides.length
+        ? normalizedSlides
+        : undefined,
   };
 }
 
@@ -103,6 +129,10 @@ export function normalizeWorkPayload(
 ): ManagedWork {
   const category = payload.category as WorkCategory;
   const baseSlug = payload.slug || payload.title || "untitled-work";
+  const featured = Boolean(payload.featured);
+  const featuredOrder = featured
+    ? normalizeFeaturedOrder(payload.featuredOrder)
+    : null;
 
   return {
     slug: sanitizeSlug(baseSlug),
@@ -111,7 +141,8 @@ export function normalizeWorkPayload(
     year: Number(payload.year) || new Date().getFullYear(),
     client: (payload.client || "Confidential client").trim(),
     role: (payload.role || "Presentation Designer").trim(),
-    featured: Boolean(payload.featured),
+    featured,
+    featuredOrder,
     thumbnail: (payload.thumbnail || "").trim(),
     pdfUrl: (payload.pdfUrl || "").trim(),
     summary: (
@@ -141,19 +172,32 @@ async function readWorksFromFile() {
 }
 
 async function readWorksFromSource(): Promise<ManagedWork[]> {
-  if (hasDatabaseUrl()) {
-    try {
-      const works = await db
-        .select()
-        .from(worksTable)
-        .orderBy(desc(worksTable.updatedAt), desc(worksTable.createdAt));
-      return works.map(mapDbWorkToManagedWork);
-    } catch (error) {
-      reportDatabaseFallback(error);
-    }
+  if (!hasDatabaseUrl()) {
+    console.warn("DATABASE_URL not set; reading works from local JSON");
+    return readWorksFromFile();
   }
 
-  return readWorksFromFile();
+  try {
+    const works = await db
+      .select()
+      .from(worksTable)
+      .orderBy(desc(worksTable.updatedAt), desc(worksTable.createdAt));
+
+    if (!works || works.length === 0) {
+      console.warn("Neon database returned no works rows; check Neon contents");
+    } else {
+      console.info(`Loaded ${works.length} works from Neon database`);
+    }
+
+    return works.map(mapDbWorkToManagedWork);
+  } catch (error) {
+    console.error(
+      "Neon database query failed; check connectivity and schema",
+      error,
+    );
+    reportDatabaseFallback(error);
+    return readWorksFromFile();
+  }
 }
 
 const getCachedWorks = unstable_cache(readWorksFromSource, ["works-all"], {
@@ -163,6 +207,47 @@ const getCachedWorks = unstable_cache(readWorksFromSource, ["works-all"], {
 
 export async function getWorks(): Promise<ManagedWork[]> {
   return getCachedWorks();
+}
+
+export function getFeaturedWorksInOrder(works: ManagedWork[]): ManagedWork[] {
+  return works
+    .filter((work) => work.featured)
+    .sort((a, b) => {
+      const aOrder = normalizeFeaturedOrder(a.featuredOrder);
+      const bOrder = normalizeFeaturedOrder(b.featuredOrder);
+
+      if (aOrder === null && bOrder === null) {
+        return a.title.localeCompare(b.title);
+      }
+      if (aOrder === null) {
+        return 1;
+      }
+      if (bOrder === null) {
+        return -1;
+      }
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+
+      return a.title.localeCompare(b.title);
+    });
+}
+
+export function getNextFeaturedOrder(works: ManagedWork[]): number {
+  const maxOrder = works.reduce((max, work) => {
+    if (!work.featured) {
+      return max;
+    }
+
+    const order = normalizeFeaturedOrder(work.featuredOrder);
+    if (order === null) {
+      return max;
+    }
+
+    return Math.max(max, order);
+  }, -1);
+
+  return maxOrder + 1;
 }
 
 export async function saveWorks(works: ManagedWork[]) {
@@ -180,6 +265,9 @@ export async function saveWorks(works: ManagedWork[]) {
             client: work.client,
             role: work.role,
             featured: Boolean(work.featured),
+            featuredOrder: work.featured
+              ? normalizeFeaturedOrder(work.featuredOrder)
+              : null,
             thumbnail: work.thumbnail,
             pdfUrl: work.pdfUrl,
             summary: work.summary,

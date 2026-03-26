@@ -167,9 +167,11 @@ export function GalleryClient({ initialWorks }: GalleryClientProps) {
   }, [selectedCategory, searchQuery, visibleCount]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
+    <div className="mx-auto max-w-6xl px-4 py-10 md:py-12">
       <header className="mb-8">
-        <h1 className="text-4xl font-black tracking-tight">Gallery</h1>
+        <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+          Gallery
+        </h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
           Explore presentation projects by category or keyword.
         </p>
@@ -195,35 +197,37 @@ export function GalleryClient({ initialWorks }: GalleryClientProps) {
       </div>
 
       <div
-        className="mb-8 flex flex-wrap gap-2"
+        className="mb-8 -mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:thin]"
         role="tablist"
         aria-label="Project category filters"
       >
-        {categories.map((category) => {
-          const active = selectedCategory === category;
-          return (
-            <button
-              key={category}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-gray-300 bg-white text-gray-700 hover:border-primary hover:text-primary dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
-              }`}
-              onClick={() => {
-                captureFlipState();
-                flushSync(() => {
-                  setSelectedCategory(category);
-                  setVisibleCount(PAGE_SIZE);
-                });
-              }}
-            >
-              {category}
-            </button>
-          );
-        })}
+        <div className="flex min-w-max gap-2">
+          {categories.map((category) => {
+            const active = selectedCategory === category;
+            return (
+              <button
+                key={category}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-gray-300 bg-white text-gray-700 hover:border-primary hover:text-primary dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200"
+                }`}
+                onClick={() => {
+                  captureFlipState();
+                  flushSync(() => {
+                    setSelectedCategory(category);
+                    setVisibleCount(PAGE_SIZE);
+                  });
+                }}
+              >
+                {category}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div ref={resultsRegionRef}>
@@ -283,7 +287,7 @@ export function GalleryClient({ initialWorks }: GalleryClientProps) {
             </div>
 
             {hasMore && (
-              <div className="mt-10 text-center">
+              <div className="mt-8 text-center md:mt-10">
                 <button
                   type="button"
                   onClick={() => {

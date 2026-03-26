@@ -53,9 +53,9 @@ export function HomeScrollStory() {
         });
 
         heroScroll
-          .to(heroTitle, { yPercent: -28, opacity: 0.35, ease: "none" }, 0)
-          .to(heroBody, { yPercent: -18, opacity: 0.2, ease: "none" }, 0)
-          .to(heroActions, { yPercent: -14, opacity: 0.06, ease: "none" }, 0);
+          .to(heroTitle, { yPercent: -24, opacity: 0.78, ease: "none" }, 0)
+          .to(heroBody, { yPercent: -14, opacity: 0.7, ease: "none" }, 0)
+          .to(heroActions, { yPercent: -10, opacity: 0.82, ease: "none" }, 0);
       }
 
       if (featuredCards.length > 0) {

@@ -217,32 +217,32 @@ export function PresentationViewer({
               </div>
             </div>
           ) : (
-            <p className="px-4 text-center text-sm font-semibold text-[#2A0659]/75">
+            <p className="px-4 text-center text-sm font-semibold text-[#2A0659]/75 dark:text-[#EAD9FF]/90">
               No PDF uploaded for this presentation yet.
             </p>
           )}
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-3 grid grid-cols-2 items-center gap-2 sm:flex sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={goPrevious}
-          className="inline-flex items-center rounded-full border border-[#D9B1FF] px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:border-[#B353FF] hover:bg-[#F8F1FF] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="inline-flex items-center justify-center rounded-full border border-[#D9B1FF] px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:border-[#B353FF] hover:bg-[#F8F1FF] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#2A1544]"
           aria-label="Previous slide"
           disabled={!canGoPrevious}
         >
           Previous
         </button>
 
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
+        <p className="col-span-2 order-3 text-center text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#7A21C8] sm:order-none sm:col-span-1 sm:text-xs">
           Slide {currentPage} of {hasPdf ? (numPages ?? "?") : slideCount}
         </p>
 
         <button
           type="button"
           onClick={goNext}
-          className="inline-flex items-center rounded-full border border-[#D9B1FF] px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:border-[#B353FF] hover:bg-[#F8F1FF] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="inline-flex items-center justify-center rounded-full border border-[#D9B1FF] px-4 py-2 text-sm font-semibold text-[#2A0659] transition-colors hover:border-[#B353FF] hover:bg-[#F8F1FF] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#2A1544]"
           aria-label="Next slide"
           disabled={!canGoNext}
         >
@@ -257,7 +257,10 @@ export function PresentationViewer({
       ) : null}
 
       <div className="mt-4 overflow-hidden">
-        <div ref={thumbStripRef} className="flex gap-3 will-change-transform">
+        <div
+          ref={thumbStripRef}
+          className="flex gap-2 will-change-transform sm:gap-3"
+        >
           {(hasPdf
             ? pdfPageButtons
             : pageIndexes.map((index) => index + 1)
@@ -270,7 +273,7 @@ export function PresentationViewer({
                 key={`thumb-${pageNumber}`}
                 type="button"
                 onClick={() => scrollTo(index)}
-                className={`min-w-[110px] flex-[0_0_auto] overflow-hidden rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                className={`min-w-[88px] flex-[0_0_auto] overflow-hidden rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 sm:min-w-[110px] ${
                   isActive
                     ? "border-[#B353FF] ring-2 ring-[#EAD2FF]"
                     : "border-transparent hover:border-[#D9B1FF]"
@@ -279,14 +282,14 @@ export function PresentationViewer({
                 aria-current={isActive}
               >
                 {hasPdf ? (
-                  <div className="flex h-16 w-[110px] items-center justify-center bg-background text-sm font-semibold text-[#2A0659]">
+                  <div className="flex h-14 w-[88px] items-center justify-center bg-background text-xs font-semibold text-[#2A0659] dark:text-[#F8EEFF] sm:h-16 sm:w-[110px] sm:text-sm">
                     Page {pageNumber}
                   </div>
                 ) : (
                   <Image
                     src={fallbackSlides[index].src}
                     alt={fallbackSlides[index].alt}
-                    className="h-16 w-[110px] object-cover"
+                    className="h-14 w-[88px] object-cover sm:h-16 sm:w-[110px]"
                     loading="lazy"
                     width={220}
                     height={128}

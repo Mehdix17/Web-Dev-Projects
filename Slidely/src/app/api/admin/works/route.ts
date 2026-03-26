@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentAdminUser } from "@/lib/admin-auth";
-import { getWorks, normalizeWorkPayload, saveWorks } from "@/lib/work-store";
+import {
+  getNextFeaturedOrder,
+  getWorks,
+  normalizeWorkPayload,
+  saveWorks,
+} from "@/lib/work-store";
 import { workCategories } from "@/lib/work-types";
 
 function unauthorized() {
@@ -37,6 +42,9 @@ export async function POST(request: Request) {
 
     const works = await getWorks();
     const normalized = normalizeWorkPayload(payload);
+    if (normalized.featured && normalized.featuredOrder === null) {
+      normalized.featuredOrder = getNextFeaturedOrder(works);
+    }
 
     if (!normalized.thumbnail) {
       return NextResponse.json(

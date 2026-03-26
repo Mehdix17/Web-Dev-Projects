@@ -47,7 +47,7 @@ export function HeroSection() {
       <div className="relative mx-auto max-w-5xl text-center">
         <h1
           data-hero-title
-          className="text-4xl font-black leading-[1.05] tracking-tight text-[#2A0659] md:text-7xl"
+          className="text-[2.35rem] font-black leading-[1.04] tracking-tight text-foreground sm:text-5xl md:text-7xl"
         >
           Slidely
           <br />
@@ -55,7 +55,7 @@ export function HeroSection() {
         </h1>
         <p
           data-hero-body
-          className="mx-auto mt-6 max-w-3xl text-sm text-[#2A0659]/70 md:text-base"
+          className="mx-auto mt-6 max-w-3xl text-sm text-foreground/85 md:text-base"
         >
           Professional presentation design for everyone : custom storytelling,
           clear structure, and visuals built to win trust across pitch decks,
@@ -65,7 +65,7 @@ export function HeroSection() {
 
         <div
           data-hero-actions
-          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+          className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row sm:flex-wrap sm:gap-3"
         >
           <Button
             href="/gallery"
@@ -74,7 +74,7 @@ export function HeroSection() {
             Get Started
           </Button>
 
-          <div className="flex -space-x-2">
+          <div className="flex -space-x-2" aria-hidden="true">
             {["#E0B4FF", "#BD6BFF", "#B353FF", "#2A0659"].map((tone) => (
               <span
                 key={tone}
@@ -84,9 +84,9 @@ export function HeroSection() {
             ))}
           </div>
 
-          <div className="text-left">
-            <p className="text-sm font-bold text-[#2A0659]">★★★★★</p>
-            <p className="text-xs text-[#2A0659]/70">
+          <div className="text-center sm:text-left">
+            <p className="text-sm font-bold text-foreground">★★★★★</p>
+            <p className="text-xs text-foreground/80">
               Trusted by growing teams and founders
             </p>
           </div>

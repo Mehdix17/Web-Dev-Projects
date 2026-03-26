@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentAdminUser } from "@/lib/admin-auth";
-import { getWorks, normalizeWorkPayload, saveWorks } from "@/lib/work-store";
+import {
+  getNextFeaturedOrder,
+  getWorks,
+  normalizeWorkPayload,
+  saveWorks,
+} from "@/lib/work-store";
 import { workCategories } from "@/lib/work-types";
 
 interface RouteContext {
@@ -33,6 +38,19 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
 
     const normalized = normalizeWorkPayload(payload);
+    const previous = works[currentIndex];
+
+    if (normalized.featured) {
+      const hasProvidedOrder = Number.isFinite(Number(payload?.featuredOrder));
+      if (!hasProvidedOrder) {
+        normalized.featuredOrder = previous.featured
+          ? previous.featuredOrder
+          : getNextFeaturedOrder(works);
+      }
+      if (normalized.featuredOrder === null) {
+        normalized.featuredOrder = getNextFeaturedOrder(works);
+      }
+    }
     if (!normalized.thumbnail) {
       return NextResponse.json(
         { error: "Thumbnail image upload is required" },

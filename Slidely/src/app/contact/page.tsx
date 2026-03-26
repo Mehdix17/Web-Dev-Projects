@@ -81,11 +81,11 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 lg:py-20">
-      <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+    <div className="mx-auto max-w-6xl px-4 py-10 lg:py-20">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
           <header className="mb-4">
-            <h1 className="text-4xl lg:text-5xl font-black tracking-tight">
+            <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
               Contact
             </h1>
             <p className="mt-4 text-base text-gray-600 dark:text-gray-300 max-w-2xl">
@@ -110,7 +110,7 @@ export default function ContactPage() {
           </div>
 
           <form
-            className="grid grid-cols-1 gap-6 md:grid-cols-2"
+            className="grid grid-cols-1 gap-5 md:grid-cols-2"
             onSubmit={handleSubmit}
             noValidate
           >
@@ -179,11 +179,11 @@ export default function ContactPage() {
               )}
             </div>
 
-            <div className="md:col-span-2 mt-4">
+            <div className="mt-2 md:col-span-2 md:mt-4">
               <button
                 type="submit"
                 disabled={status === "sending"}
-                className="rounded-full bg-primary px-8 py-4 text-base font-semibold text-primary-foreground transition-opacity focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
+                className="w-full rounded-full bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground transition-opacity focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 sm:w-auto sm:py-4"
               >
                 {status === "sending" ? "Sending..." : "Send Message"}
               </button>
@@ -202,22 +202,22 @@ export default function ContactPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-3xl border border-primary/20 bg-primary/5 p-8">
-            <h3 className="text-2xl font-black tracking-tight mb-3">
+          <div className="rounded-3xl border border-primary/20 bg-primary/5 p-6 sm:p-8">
+            <h3 className="mb-3 text-xl font-black tracking-tight sm:text-2xl">
               Hire me directly
             </h3>
-            <p className="text-sm text-foreground/75 mb-8 leading-relaxed">
+            <p className="mb-6 text-sm leading-relaxed text-foreground/75 sm:mb-8">
               Prefer to use a freelance platform for escrow and project
               management? Find me here:
             </p>
             <div className="flex flex-col gap-4">
               <a
-                className="group flex items-center justify-between rounded-2xl bg-background px-6 py-5 shadow-sm border border-primary/20 hover:-translate-y-1 hover:border-primary/50 hover:shadow-md transition-all duration-300 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary"
+                className="group flex items-center justify-between rounded-2xl border border-primary/20 bg-background px-5 py-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary sm:px-6 sm:py-5"
                 href="https://www.upwork.com/freelancers/~018352e06aaf62f49a"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span className="font-bold text-foreground group-hover:text-primary transition-colors text-lg tracking-tight">
+                <span className="text-base font-bold tracking-tight text-foreground transition-colors group-hover:text-primary sm:text-lg">
                   Upwork
                 </span>
                 <div className="bg-primary/10 p-2 rounded-full text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -225,12 +225,12 @@ export default function ContactPage() {
                 </div>
               </a>
               <a
-                className="group flex items-center justify-between rounded-2xl bg-background px-6 py-5 shadow-sm border border-primary/20 hover:-translate-y-1 hover:border-primary/50 hover:shadow-md transition-all duration-300 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary"
+                className="group flex items-center justify-between rounded-2xl border border-primary/20 bg-background px-5 py-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary sm:px-6 sm:py-5"
                 href="https://www.fiverr.com/users/mehdix_17"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span className="font-bold text-foreground group-hover:text-primary transition-colors text-lg tracking-tight">
+                <span className="text-base font-bold tracking-tight text-foreground transition-colors group-hover:text-primary sm:text-lg">
                   Fiverr
                 </span>
                 <div className="bg-primary/10 p-2 rounded-full text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -238,12 +238,12 @@ export default function ContactPage() {
                 </div>
               </a>
               <a
-                className="group flex items-center justify-between rounded-2xl bg-background px-6 py-5 shadow-sm border border-primary/20 hover:-translate-y-1 hover:border-primary/50 hover:shadow-md transition-all duration-300 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary"
+                className="group flex items-center justify-between rounded-2xl border border-primary/20 bg-background px-5 py-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary sm:px-6 sm:py-5"
                 href="https://www.freelancer.com/u/mehdix17"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span className="font-bold text-foreground group-hover:text-primary transition-colors text-lg tracking-tight">
+                <span className="text-base font-bold tracking-tight text-foreground transition-colors group-hover:text-primary sm:text-lg">
                   Freelancer.com
                 </span>
                 <div className="bg-primary/10 p-2 rounded-full text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
