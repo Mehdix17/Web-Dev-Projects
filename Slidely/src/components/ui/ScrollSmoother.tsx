@@ -5,7 +5,11 @@ import Lenis from "lenis";
 
 export function ScrollSmoother() {
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      window.matchMedia("(max-width: 768px)").matches
+    ) {
+      // Disable Lenis smooth scrolling on mobile (touch) and reduced motion.
       return;
     }
 
