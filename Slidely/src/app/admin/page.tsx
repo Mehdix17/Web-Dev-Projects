@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import type { ManagedWork } from "@/lib/work-types";
 import { workCategories } from "@/lib/work-types";
 import { Card } from "@/components/ui/Card";
@@ -284,36 +285,61 @@ export default function AdminPage() {
     file: File,
     kind: "thumbnail" | "deck" | "slide",
   ) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("kind", kind);
+    const makeClientUpload = async () => {
+      const ext = file.name.includes(".")
+        ? file.name.split(".").pop() || "bin"
+        : file.type.split("/").pop() || "bin";
+      const finalPath = `uploads/works/${kind}-${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-    const response = await fetch("/api/admin/upload", {
-      method: "POST",
-      body: formData,
-    });
+      const result = await upload(finalPath, file, {
+        access: "public",
+        handleUploadUrl: `/api/admin/blob-upload?kind=${kind}`,
+        clientPayload: JSON.stringify({ kind }),
+        contentType: file.type || undefined,
+      });
 
-    const raw = await response.text();
-    let payload: { url?: string; error?: string } | null = null;
+      if (!result?.url) {
+        throw new Error("Blob client upload did not return a URL.");
+      }
+
+      return result.url;
+    };
+
     try {
-      payload = raw
-        ? (JSON.parse(raw) as { url?: string; error?: string })
-        : null;
+      return await makeClientUpload();
     } catch {
-      payload = null;
-    }
+      // Fallback to existing server-upload route for environments that don't support client upload.
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("kind", kind);
 
-    if (!response.ok) {
-      throw new Error(
-        payload?.error || `Upload failed with status ${response.status}`,
-      );
-    }
+      const response = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!payload?.url) {
-      throw new Error("Upload succeeded but no file URL was returned.");
-    }
+      const raw = await response.text();
+      let payload: { url?: string; error?: string } | null = null;
+      try {
+        payload = raw
+          ? (JSON.parse(raw) as { url?: string; error?: string })
+          : null;
+      } catch {
+        payload = null;
+      }
 
-    return payload.url;
+      if (!response.ok) {
+        throw new Error(
+          payload?.error || `Upload failed with status ${response.status}`,
+        );
+      }
+
+      if (!payload?.url) {
+        throw new Error("Upload succeeded but no file URL was returned.");
+      }
+
+      return payload.url;
+    }
   };
 
   const canvasToJpegBlob = (canvas: HTMLCanvasElement, quality = 0.86) =>
