@@ -6,7 +6,7 @@ import { put } from "@vercel/blob";
 import { getCurrentAdminUser } from "@/lib/admin-auth";
 
 const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
-const MAX_PDF_SIZE_BYTES = 25 * 1024 * 1024;
+const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024;
 const allowedImageMimeTypes = new Set([
   "image/png",
   "image/jpeg",
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: isDeckUpload
-            ? "File too large. Maximum allowed PDF size is 25MB."
+            ? "File too large. Maximum allowed PDF size is 10MB."
             : "File too large. Maximum allowed image size is 8MB.",
         },
         { status: 400 },
