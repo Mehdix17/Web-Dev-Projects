@@ -82,8 +82,30 @@ export async function POST(request: Request) {
           throw new Error("Kind mismatch");
         }
 
-        validateFileType(kind, requestedContentType);
-        validateSize(kind, requestedSize);
+        // Accept missing content-type if pathname extension is valid.
+        let validatedContentType = requestedContentType;
+        if (!validatedContentType) {
+          const lowerPath = String(_pathname || "").toLowerCase();
+          if (lowerPath.endsWith(".pdf")) validatedContentType = PDF_MIME_TYPE;
+          if (lowerPath.endsWith(".jpg") || lowerPath.endsWith(".jpeg"))
+            validatedContentType = "image/jpeg";
+          if (lowerPath.endsWith(".png")) validatedContentType = "image/png";
+          if (lowerPath.endsWith(".webp")) validatedContentType = "image/webp";
+          if (lowerPath.endsWith(".avif")) validatedContentType = "image/avif";
+          if (lowerPath.endsWith(".gif")) validatedContentType = "image/gif";
+          if (lowerPath.endsWith(".svg"))
+            validatedContentType = "image/svg+xml";
+        }
+
+        validateFileType(kind, validatedContentType);
+
+        const sizeToCheck =
+          requestedSize > 0
+            ? requestedSize
+            : kind === "deck"
+              ? MAX_PDF_SIZE_BYTES
+              : MAX_IMAGE_SIZE_BYTES;
+        validateSize(kind, sizeToCheck);
 
         return {
           allowedContentTypes:

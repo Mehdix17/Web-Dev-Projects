@@ -294,8 +294,13 @@ export default function AdminPage() {
       const result = await upload(finalPath, file, {
         access: "public",
         handleUploadUrl: `/api/admin/blob-upload?kind=${kind}`,
-        clientPayload: JSON.stringify({ kind }),
+        clientPayload: JSON.stringify({
+          kind,
+          contentType: file.type,
+          size: file.size,
+        }),
         contentType: file.type || undefined,
+        multipart: file.size > 4.5 * 1024 * 1024,
       });
 
       if (!result?.url) {
@@ -305,41 +310,7 @@ export default function AdminPage() {
       return result.url;
     };
 
-    try {
-      return await makeClientUpload();
-    } catch {
-      // Fallback to existing server-upload route for environments that don't support client upload.
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("kind", kind);
-
-      const response = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const raw = await response.text();
-      let payload: { url?: string; error?: string } | null = null;
-      try {
-        payload = raw
-          ? (JSON.parse(raw) as { url?: string; error?: string })
-          : null;
-      } catch {
-        payload = null;
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          payload?.error || `Upload failed with status ${response.status}`,
-        );
-      }
-
-      if (!payload?.url) {
-        throw new Error("Upload succeeded but no file URL was returned.");
-      }
-
-      return payload.url;
-    }
+    return await makeClientUpload();
   };
 
   const canvasToJpegBlob = (canvas: HTMLCanvasElement, quality = 0.86) =>
