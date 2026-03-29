@@ -30,7 +30,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
     }
 
-    const works = await getWorks();
+    const works = await getWorks({ noCache: true });
     const currentIndex = works.findIndex((work) => work.slug === slug);
 
     if (currentIndex < 0) {

@@ -20,7 +20,7 @@ export async function GET() {
   try {
     if (!(await getCurrentAdminUser())) return unauthorized();
 
-    const works = await getWorks();
+    const works = await getWorks({ noCache: true });
     return NextResponse.json({ works });
   } catch (error) {
     const message =

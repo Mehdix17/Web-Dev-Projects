@@ -92,6 +92,8 @@ export default function AdminPage() {
   const [draggingFeaturedSlug, setDraggingFeaturedSlug] = useState<
     string | null
   >(null);
+  const [draggingSlug, setDraggingSlug] = useState<string | null>(null);
+  const [dragOverSlug, setDragOverSlug] = useState<string | null>(null);
   const [isSavingFeaturedOrder, setIsSavingFeaturedOrder] = useState(false);
   const [editFromQuery, setEditFromQuery] = useState("");
   const [toast, setToast] = useState<ToastState>(null);
@@ -663,7 +665,9 @@ export default function AdminPage() {
       });
 
       const raw = await response.text();
-      const data = raw ? (JSON.parse(raw) as { error?: string }) : null;
+      const data = raw
+        ? (JSON.parse(raw) as { error?: string; works?: ManagedWork[] })
+        : null;
 
       if (!response.ok) {
         throw new Error(
@@ -672,13 +676,55 @@ export default function AdminPage() {
         );
       }
 
+      if (data?.works) {
+        setWorks(data.works);
+      }
+
       showToast("success", "Featured layout updated.");
-      await fetchWorks();
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : "Unable to save featured layout right now.";
+      setFormError(message);
+      showToast("error", message);
+      await fetchWorks();
+    } finally {
+      setIsSavingFeaturedOrder(false);
+    }
+  };
+
+  const persistProjectOrder = async (orderedSlugs: string[]) => {
+    setIsSavingFeaturedOrder(true);
+    try {
+      const response = await fetch("/api/admin/works/order", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedSlugs }),
+      });
+
+      const raw = await response.text();
+      const data = raw
+        ? (JSON.parse(raw) as { error?: string; works?: ManagedWork[] })
+        : null;
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            `Unable to save project order (status ${response.status}).`,
+        );
+      }
+
+      if (data?.works) {
+        setWorks(data.works);
+      }
+
+      showToast("success", "Portfolio project order saved.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to save project order right now.";
       setFormError(message);
       showToast("error", message);
       await fetchWorks();
@@ -727,6 +773,49 @@ export default function AdminPage() {
     );
 
     await persistFeaturedOrder(next.map((item) => item.slug));
+  };
+
+  const moveProjectToEnd = async (sourceSlug: string) => {
+    if (!sourceSlug) return;
+
+    const current = [...works];
+    const fromIndex = current.findIndex((item) => item.slug === sourceSlug);
+
+    if (fromIndex < 0 || fromIndex >= current.length - 1) {
+      return;
+    }
+
+    const next = [...current];
+    const [moved] = next.splice(fromIndex, 1);
+    next.push(moved);
+
+    setWorks(next);
+    await persistProjectOrder(next.map((item) => item.slug));
+  };
+
+  const moveProjectInList = async (sourceSlug: string, targetSlug: string) => {
+    if (!sourceSlug || !targetSlug || sourceSlug === targetSlug) {
+      return;
+    }
+
+    const current = [...works];
+    const fromIndex = current.findIndex((item) => item.slug === sourceSlug);
+    const targetIndex = current.findIndex((item) => item.slug === targetSlug);
+
+    if (fromIndex < 0 || targetIndex < 0) {
+      return;
+    }
+
+    const next = [...current];
+    const [moved] = next.splice(fromIndex, 1);
+
+    // Place the dragged item into the target’s position.
+    // This keeps the expected “replace by target index” behavior.
+    const insertIndex = targetIndex;
+    next.splice(insertIndex, 0, moved);
+
+    setWorks(next);
+    await persistProjectOrder(next.map((item) => item.slug));
   };
 
   if (isLoading) {
@@ -926,6 +1015,9 @@ export default function AdminPage() {
               <thead>
                 <tr className="bg-[#FCF8FF] text-left dark:bg-[#2A1842]">
                   <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
+                    Order
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
                     Title
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
@@ -942,77 +1034,142 @@ export default function AdminPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {visibleWorks.map((work) => (
-                  <tr
-                    key={work.slug}
-                    className="border-t border-[#F0DFFF] dark:border-[#5A3D7A]"
-                  >
-                    <td className="px-4 py-3 text-sm font-semibold text-[#2A0659] dark:text-[#F8EEFF]">
-                      {work.title}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
-                      {work.category}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
-                      {work.year}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-[#2A0659]/80 dark:text-[#EAD9FF]/92">
-                      <button
-                        type="button"
-                        aria-label={
-                          work.featured
-                            ? `Unfeature ${work.title}`
-                            : `Feature ${work.title}`
+              <tbody
+                onDragOver={(event) => {
+                  event.preventDefault();
+                }}
+                onDrop={async (event) => {
+                  event.preventDefault();
+                  const source = event.dataTransfer?.getData("text/plain");
+                  setDraggingSlug(null);
+                  setDragOverSlug(null);
+                  if (source && works.length > 0) {
+                    await moveProjectToEnd(source);
+                  }
+                }}
+              >
+                {visibleWorks.map((work, index) => {
+                  const displayIndex =
+                    (currentPage - 1) * ADMIN_PAGE_SIZE + index + 1;
+
+                  return (
+                    <tr
+                      key={work.slug}
+                      draggable
+                      onDragStart={(event) => {
+                        setDraggingSlug(work.slug);
+                        event.dataTransfer?.setData("text/plain", work.slug);
+                        event.dataTransfer!.effectAllowed = "move";
+                      }}
+                      onDragEnter={() => {
+                        setDragOverSlug(work.slug);
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverSlug === work.slug) {
+                          setDragOverSlug(null);
                         }
-                        title={
-                          work.featured
-                            ? "Remove from Featured Projects"
-                            : "Add to Featured Projects"
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setDragOverSlug(work.slug);
+                      }}
+                      onDrop={async (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const source =
+                          event.dataTransfer?.getData("text/plain");
+                        setDraggingSlug(null);
+                        setDragOverSlug(null);
+                        if (source && source !== work.slug) {
+                          await moveProjectInList(source, work.slug);
                         }
-                        onClick={() => void toggleFeatured(work)}
-                        disabled={togglingFeaturedSlug === work.slug}
-                        className={`text-lg leading-none transition-colors ${
-                          work.featured
-                            ? "text-[#7A21C8]"
-                            : "text-[#2A0659]/30 hover:text-[#7A21C8]"
-                        } disabled:opacity-50`}
-                      >
-                        {work.featured ? "★" : "☆"}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
+                      }}
+                      onDragEnd={() => {
+                        setDraggingSlug(null);
+                        setDragOverSlug(null);
+                      }}
+                      className={`border-t border-[#F0DFFF] dark:border-[#5A3D7A] transition-all duration-200 ease-in-out ${
+                        draggingSlug === work.slug
+                          ? "shadow-2xl ring-2 ring-primary scale-105 opacity-70"
+                          : ""
+                      } ${dragOverSlug === work.slug ? "bg-[#f0f8ff]" : ""}`}
+                    >
+                      <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
+                        <span
+                          aria-label="Drag to reorder"
+                          title="Drag to reorder"
+                        >
+                          ☰
+                        </span>{" "}
+                        {displayIndex}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-[#2A0659] dark:text-[#F8EEFF]">
+                        {work.title}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
+                        {work.category}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
+                        {work.year}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-[#2A0659]/80 dark:text-[#EAD9FF]/92">
                         <button
                           type="button"
-                          onClick={() => startEdit(work)}
-                          className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
+                          aria-label={
+                            work.featured
+                              ? `Unfeature ${work.title}`
+                              : `Feature ${work.title}`
+                          }
+                          title={
+                            work.featured
+                              ? "Remove from Featured Projects"
+                              : "Add to Featured Projects"
+                          }
+                          onClick={() => void toggleFeatured(work)}
+                          disabled={togglingFeaturedSlug === work.slug}
+                          className={`text-lg leading-none transition-colors ${
+                            work.featured
+                              ? "text-[#7A21C8]"
+                              : "text-[#2A0659]/30 hover:text-[#7A21C8]"
+                          } disabled:opacity-50`}
                         >
-                          Edit
+                          {work.featured ? "★" : "☆"}
                         </button>
-                        <Link
-                          href={`/gallery/${work.slug}`}
-                          className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
-                        >
-                          Preview
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => deleteWork(work.slug)}
-                          className="rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(work)}
+                            className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
+                          >
+                            Edit
+                          </button>
+                          <Link
+                            href={`/gallery/${work.slug}`}
+                            className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
+                          >
+                            Preview
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => deleteWork(work.slug)}
+                            className="rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {visibleWorks.length === 0 ? (
                   <tr>
                     <td
                       className="px-4 py-6 text-center text-sm font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88"
-                      colSpan={5}
+                      colSpan={6}
                     >
                       No project matches your search.
                     </td>

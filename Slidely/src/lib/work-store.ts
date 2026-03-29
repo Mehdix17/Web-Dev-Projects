@@ -2,7 +2,7 @@ import "server-only";
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { db } from "@/lib/db/client";
 import { works as worksTable, type WorkRow } from "@/lib/db/schema";
@@ -178,17 +178,18 @@ async function readWorksFromSource(): Promise<ManagedWork[]> {
   }
 
   try {
-    const works = await db
-      .select()
-      .from(worksTable)
-      .orderBy(desc(worksTable.updatedAt), desc(worksTable.createdAt));
+    const works = await db.select().from(worksTable).orderBy(worksTable.id);
 
     if (!works || works.length === 0) {
-      console.warn("Neon database returned no works rows; check Neon contents");
-    } else {
-      console.info(`Loaded ${works.length} works from Neon database`);
+      console.warn(
+        "Neon database returned no works rows; falling back to local works.",
+      );
+
+      // Avoid mutating DB and revalidate tags during render path.
+      return await readWorksFromFile();
     }
 
+    console.info(`Loaded ${works.length} works from Neon database`);
     return works.map(mapDbWorkToManagedWork);
   } catch (error) {
     console.error(
@@ -205,7 +206,13 @@ const getCachedWorks = unstable_cache(readWorksFromSource, ["works-all"], {
   revalidate: 60,
 });
 
-export async function getWorks(): Promise<ManagedWork[]> {
+export async function getWorks(options?: {
+  noCache?: boolean;
+}): Promise<ManagedWork[]> {
+  if (options?.noCache) {
+    return readWorksFromSource();
+  }
+
   return getCachedWorks();
 }
 

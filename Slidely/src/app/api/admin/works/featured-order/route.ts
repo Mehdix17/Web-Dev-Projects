@@ -18,7 +18,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const works = await getWorks();
+    const works = await getWorks({ noCache: true });
     const featured = getFeaturedWorksInOrder(works);
     const featuredSlugSet = new Set(featured.map((work) => work.slug));
 
