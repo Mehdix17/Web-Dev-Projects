@@ -1,12 +1,17 @@
-export type ProjectCategory = "Pitch Deck" | "Keynote" | "Sales" | "Reports" | "Educational";
+export type ProjectCategory =
+  | "Pitch Deck"
+  | "Keynote"
+  | "Sales"
+  | "Reports"
+  | "Redesign"
+  | "Educational";
 
 export interface Project {
   slug: string;
   title: string;
   category: ProjectCategory;
-  year: number;
+  date: string;
   client: string;
-  role: string;
   thumbnail: string;
   heroImage: string;
   challenge: string[];
@@ -26,8 +31,7 @@ const makeProject = (
   title,
   category,
   client,
-  year,
-  role: "Lead Presentation Designer",
+  date: String(year),
   thumbnail: `https://picsum.photos/seed/${slug}-thumb/900/600`,
   heroImage: `https://picsum.photos/seed/${slug}-hero/1920/1080`,
   challenge: [

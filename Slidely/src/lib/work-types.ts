@@ -3,6 +3,7 @@ export type WorkCategory =
   | "Keynote"
   | "Sales"
   | "Reports"
+  | "Redesign"
   | "Course Materials"
   | "Educational";
 
@@ -10,11 +11,11 @@ export interface ManagedWork {
   slug: string;
   title: string;
   category: WorkCategory;
-  year: number;
+  date: string;
   client: string;
-  role: string;
   featured: boolean;
   featuredOrder: number | null;
+  orderedPosition: number | null;
   thumbnail: string;
   pdfUrl: string;
   summary: string;
@@ -26,6 +27,7 @@ export const workCategories: WorkCategory[] = [
   "Keynote",
   "Sales",
   "Reports",
+  "Redesign",
   "Course Materials",
   "Educational",
 ];

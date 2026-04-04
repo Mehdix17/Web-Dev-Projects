@@ -40,6 +40,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
     const normalized = normalizeWorkPayload(payload);
     const previous = works[currentIndex];
 
+    // Preserve orderedPosition from previous work (updates shouldn't change order)
+    normalized.orderedPosition = previous.orderedPosition;
+
     if (normalized.featured) {
       const hasProvidedOrder = Number.isFinite(Number(payload?.featuredOrder));
       if (!hasProvidedOrder) {

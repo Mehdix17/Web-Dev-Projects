@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import type { ManagedWork } from "@/lib/work-types";
 import { workCategories } from "@/lib/work-types";
@@ -17,9 +17,8 @@ type WorkFormState = {
   slug: string;
   title: string;
   category: ManagedWork["category"];
-  year: string;
+  date: string;
   client: string;
-  role: string;
   featured: boolean;
   thumbnailUrl: string;
   pdfUrl: string;
@@ -36,9 +35,8 @@ const emptyForm: WorkFormState = {
   slug: "",
   title: "",
   category: "Pitch Deck",
-  year: String(new Date().getFullYear()),
+  date: String(new Date().getFullYear()),
   client: "",
-  role: "Presentation Designer",
   featured: false,
   thumbnailUrl: "",
   pdfUrl: "",
@@ -51,9 +49,8 @@ function toForm(work: ManagedWork): WorkFormState {
     slug: work.slug,
     title: work.title,
     category: work.category,
-    year: String(work.year),
+    date: work.date,
     client: work.client,
-    role: work.role,
     featured: Boolean(work.featured),
     thumbnailUrl: work.thumbnail,
     pdfUrl: work.pdfUrl,
@@ -97,6 +94,7 @@ export default function AdminPage() {
   const [isSavingFeaturedOrder, setIsSavingFeaturedOrder] = useState(false);
   const [editFromQuery, setEditFromQuery] = useState("");
   const [toast, setToast] = useState<ToastState>(null);
+  const formSectionRef = useRef<HTMLElement>(null);
 
   const showToast = (kind: "success" | "error", message: string) => {
     setToast({ kind, message });
@@ -161,10 +159,8 @@ export default function AdminPage() {
     Math.ceil(filteredWorks.length / ADMIN_PAGE_SIZE),
   );
   const visibleWorks = useMemo(() => {
-    const safePage = Math.min(currentPage, totalPages);
-    const start = (safePage - 1) * ADMIN_PAGE_SIZE;
-    return filteredWorks.slice(start, start + ADMIN_PAGE_SIZE);
-  }, [filteredWorks, currentPage, totalPages]);
+    return filteredWorks;
+  }, [filteredWorks]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -260,6 +256,13 @@ export default function AdminPage() {
     setEditingSlug(work.slug);
     setFormError("");
     setForm(toForm(work));
+    // Scroll to form section
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
   };
 
   useEffect(() => {
@@ -465,9 +468,8 @@ export default function AdminPage() {
       slug: form.slug,
       title: form.title,
       category: form.category,
-      year: Number(form.year),
+      date: form.date,
       client: form.client,
-      role: form.role,
       featured: form.featured,
       featuredOrder: form.featured
         ? (existingWork?.featuredOrder ?? null)
@@ -588,9 +590,8 @@ export default function AdminPage() {
         slug: work.slug,
         title: work.title,
         category: work.category,
-        year: work.year,
+        date: work.date,
         client: work.client,
-        role: work.role,
         featured: nextFeatured,
         featuredOrder: nextFeaturedOrder,
         thumbnail: work.thumbnail,
@@ -989,306 +990,22 @@ export default function AdminPage() {
         </div>
       </section>
 
-      <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[1.35fr_1fr]">
-        <section className="rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:bg-[#1A0E2C]">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
-              Portfolio projects
-            </h2>
-            <p className="text-xs font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
-              {filteredWorks.length} matching result(s)
-            </p>
-          </div>
+      {/* SECTION 1: Add New Project */}
+      <section
+        ref={formSectionRef}
+        className="mt-8 rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:bg-[#1A0E2C]"
+      >
+        <h2 className="text-xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
+          {isEditing ? "Edit project" : "Add new project"}
+        </h2>
+        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
+          {isEditing
+            ? `Editing: ${editingSlug}`
+            : "Create a new presentation case study"}
+        </p>
 
-          <div className="mt-4">
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search by title, client, category, slug"
-              className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] outline-none focus:border-[#7A21C8] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
-            />
-          </div>
-
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[#F0DFFF] dark:border-[#5A3D7A]">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-[#FCF8FF] text-left dark:bg-[#2A1842]">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
-                    Order
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
-                    Title
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
-                    Category
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
-                    Year
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
-                    Featured
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7A21C8] dark:text-[#CFA9FF]">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody
-                onDragOver={(event) => {
-                  event.preventDefault();
-                }}
-                onDrop={async (event) => {
-                  event.preventDefault();
-                  const source = event.dataTransfer?.getData("text/plain");
-                  setDraggingSlug(null);
-                  setDragOverSlug(null);
-                  if (source && works.length > 0) {
-                    await moveProjectToEnd(source);
-                  }
-                }}
-              >
-                {visibleWorks.map((work, index) => {
-                  const displayIndex =
-                    (currentPage - 1) * ADMIN_PAGE_SIZE + index + 1;
-
-                  return (
-                    <tr
-                      key={work.slug}
-                      draggable
-                      onDragStart={(event) => {
-                        setDraggingSlug(work.slug);
-                        event.dataTransfer?.setData("text/plain", work.slug);
-                        event.dataTransfer!.effectAllowed = "move";
-                      }}
-                      onDragEnter={() => {
-                        setDragOverSlug(work.slug);
-                      }}
-                      onDragLeave={() => {
-                        if (dragOverSlug === work.slug) {
-                          setDragOverSlug(null);
-                        }
-                      }}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        setDragOverSlug(work.slug);
-                      }}
-                      onDrop={async (event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        const source =
-                          event.dataTransfer?.getData("text/plain");
-                        setDraggingSlug(null);
-                        setDragOverSlug(null);
-                        if (source && source !== work.slug) {
-                          await moveProjectInList(source, work.slug);
-                        }
-                      }}
-                      onDragEnd={() => {
-                        setDraggingSlug(null);
-                        setDragOverSlug(null);
-                      }}
-                      className={`border-t border-[#F0DFFF] dark:border-[#5A3D7A] transition-all duration-200 ease-in-out ${
-                        draggingSlug === work.slug
-                          ? "shadow-2xl ring-2 ring-primary scale-105 opacity-70"
-                          : ""
-                      } ${dragOverSlug === work.slug ? "bg-[#f0f8ff]" : ""}`}
-                    >
-                      <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
-                        <span
-                          aria-label="Drag to reorder"
-                          title="Drag to reorder"
-                        >
-                          ☰
-                        </span>{" "}
-                        {displayIndex}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-[#2A0659] dark:text-[#F8EEFF]">
-                        {work.title}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
-                        {work.category}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
-                        {work.year}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-[#2A0659]/80 dark:text-[#EAD9FF]/92">
-                        <button
-                          type="button"
-                          aria-label={
-                            work.featured
-                              ? `Unfeature ${work.title}`
-                              : `Feature ${work.title}`
-                          }
-                          title={
-                            work.featured
-                              ? "Remove from Featured Projects"
-                              : "Add to Featured Projects"
-                          }
-                          onClick={() => void toggleFeatured(work)}
-                          disabled={togglingFeaturedSlug === work.slug}
-                          className={`text-lg leading-none transition-colors ${
-                            work.featured
-                              ? "text-[#7A21C8]"
-                              : "text-[#2A0659]/30 hover:text-[#7A21C8]"
-                          } disabled:opacity-50`}
-                        >
-                          {work.featured ? "★" : "☆"}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(work)}
-                            className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
-                          >
-                            Edit
-                          </button>
-                          <Link
-                            href={`/gallery/${work.slug}`}
-                            className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
-                          >
-                            Preview
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => deleteWork(work.slug)}
-                            className="rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {visibleWorks.length === 0 ? (
-                  <tr>
-                    <td
-                      className="px-4 py-6 text-center text-sm font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88"
-                      colSpan={6}
-                    >
-                      No project matches your search.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-xs font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
-              Page {Math.min(currentPage, totalPages)} of {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage <= 1}
-                className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] disabled:opacity-40 dark:border-[#715095] dark:text-[#F8EEFF]"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setCurrentPage((page) => Math.min(totalPages, page + 1))
-                }
-                disabled={currentPage >= totalPages}
-                className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] disabled:opacity-40 dark:border-[#715095] dark:text-[#F8EEFF]"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-[#F0DFFF] bg-[#FCF8FF]/80 p-4 dark:border-[#5A3D7A] dark:bg-[#221337]">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
-                Featured projects layout
-              </h3>
-              <span className="text-xs font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
-                Drag to reorder home grid
-              </span>
-            </div>
-
-            {orderedFeaturedWorks.length === 0 ? (
-              <p className="mt-3 text-sm font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
-                Mark at least one project as featured to customize layout.
-              </p>
-            ) : (
-              <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-6 md:grid-rows-[minmax(180px,auto)_minmax(140px,auto)_minmax(140px,auto)]">
-                {orderedFeaturedWorks.slice(0, 5).map((work, index) => (
-                  <button
-                    key={work.slug}
-                    type="button"
-                    draggable
-                    onDragStart={() => setDraggingFeaturedSlug(work.slug)}
-                    onDragEnd={() => setDraggingFeaturedSlug(null)}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      if (!draggingFeaturedSlug) return;
-                      void moveFeaturedProject(draggingFeaturedSlug, work.slug);
-                    }}
-                    className={`group block focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl ${
-                      index === 0
-                        ? "md:col-span-4 md:row-span-2"
-                        : "md:col-span-2 md:row-span-1"
-                    } ${
-                      draggingFeaturedSlug === work.slug
-                        ? "ring-2 ring-offset-2 ring-primary"
-                        : ""
-                    } ${isSavingFeaturedOrder ? "opacity-70" : ""}`}
-                    disabled={isSavingFeaturedOrder}
-                  >
-                    <Card className="flex h-full flex-col overflow-hidden pb-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-lg">
-                      <div className="relative mb-4 w-full flex-1 min-h-[120px] overflow-hidden rounded-xl">
-                        <Image
-                          src={work.thumbnail || "/placeholder.jpg"}
-                          alt={`${work.title} thumbnail`}
-                          className="object-cover"
-                          fill
-                          sizes={
-                            index === 0
-                              ? "(min-width: 768px) 66vw, 100vw"
-                              : "(min-width: 768px) 33vw, 100vw"
-                          }
-                        />
-                      </div>
-                      <div className="shrink-0 px-1">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                          {work.category}
-                        </p>
-                        <h3 className="mt-2 text-lg font-semibold leading-tight text-gray-900 dark:text-gray-100">
-                          {work.title}
-                        </h3>
-                        <p className="mt-1 text-xs font-medium text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
-                          Slot {index + 1}
-                        </p>
-                      </div>
-                    </Card>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:bg-[#1A0E2C]">
-          <h2 className="text-xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
-            {isEditing ? "Edit project" : "Add new project"}
-          </h2>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8]">
-            {isEditing
-              ? `Editing: ${editingSlug}`
-              : "Create a new presentation case study"}
-          </p>
-
-          <form className="mt-5 space-y-4" onSubmit={submitForm}>
+        <form className="mt-5 space-y-4" onSubmit={submitForm}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[3fr_1fr]">
             <div>
               <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                 Title
@@ -1302,88 +1019,74 @@ export default function AdminPage() {
                 required
               />
             </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
-                  Slug
-                </label>
-                <input
-                  value={form.slug}
-                  onChange={(event) =>
-                    handleFormChange("slug", event.target.value)
-                  }
-                  className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
-                  Year
-                </label>
-                <input
-                  value={form.year}
-                  onChange={(event) =>
-                    handleFormChange("year", event.target.value)
-                  }
-                  className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
-                  Category
-                </label>
-                <select
-                  value={form.category}
-                  onChange={(event) =>
-                    handleFormChange(
-                      "category",
-                      event.target.value as ManagedWork["category"],
-                    )
-                  }
-                  className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
-                  required
-                >
-                  {workCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
-                  Client
-                </label>
-                <input
-                  value={form.client}
-                  onChange={(event) =>
-                    handleFormChange("client", event.target.value)
-                  }
-                  className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
-                  required
-                />
-              </div>
-            </div>
-
             <div>
               <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
-                Role
+                Slug
               </label>
               <input
-                value={form.role}
+                value={form.slug}
                 onChange={(event) =>
-                  handleFormChange("role", event.target.value)
+                  handleFormChange("slug", event.target.value)
                 }
                 className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
                 required
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
+                Date
+              </label>
+              <input
+                value={form.date}
+                onChange={(event) =>
+                  handleFormChange("date", event.target.value)
+                }
+                placeholder="Mar 2026"
+                className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
+                Category
+              </label>
+              <select
+                value={form.category}
+                onChange={(event) =>
+                  handleFormChange(
+                    "category",
+                    event.target.value as ManagedWork["category"],
+                  )
+                }
+                className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
+                required
+              >
+                {workCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
+                Client
+              </label>
+              <input
+                value={form.client}
+                onChange={(event) =>
+                  handleFormChange("client", event.target.value)
+                }
+                className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
                 Thumbnail image
@@ -1412,7 +1115,7 @@ export default function AdminPage() {
 
             <div>
               <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
-                Presentation PDF (landscape)
+                Presentation PDF
               </label>
               <div className="mt-2 flex items-center gap-2">
                 <label className="cursor-pointer rounded-full border border-[#D9B1FF] px-3 py-1.5 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]">
@@ -1435,50 +1138,270 @@ export default function AdminPage() {
                 ) : null}
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
-                Quick description
-              </label>
-              <textarea
-                value={form.summary}
-                onChange={(event) =>
-                  handleFormChange("summary", event.target.value)
-                }
-                className="min-h-[90px] w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
-                required
-              />
-            </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-[#2A0659] dark:text-[#F3E8FF]">
+              Quick description
+            </label>
+            <textarea
+              value={form.summary}
+              onChange={(event) =>
+                handleFormChange("summary", event.target.value)
+              }
+              onWheel={(event) => {
+                event.stopPropagation();
+              }}
+              className="h-44 w-full resize-none overflow-y-auto overscroll-contain rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
+              required
+            />
+          </div>
 
-            {formError ? (
-              <p className="text-sm font-semibold text-red-600">{formError}</p>
-            ) : null}
+          {formError ? (
+            <p className="text-sm font-semibold text-red-600">{formError}</p>
+          ) : null}
 
-            <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="rounded-full bg-[#2A0659] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#B353FF] hover:text-white disabled:opacity-60"
+            >
+              {isSaving
+                ? "Saving..."
+                : isEditing
+                  ? "Update work"
+                  : "Create work"}
+            </button>
+            {isEditing ? (
               <button
-                type="submit"
-                disabled={isSaving}
-                className="rounded-full bg-[#2A0659] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#B353FF] hover:text-white disabled:opacity-60"
+                type="button"
+                onClick={resetForm}
+                className="rounded-full border border-[#D9B1FF] px-5 py-2 text-sm font-semibold text-[#2A0659] dark:border-[#715095] dark:text-[#F8EEFF]"
               >
-                {isSaving
-                  ? "Saving..."
-                  : isEditing
-                    ? "Update work"
-                    : "Create work"}
+                Cancel
               </button>
-              {isEditing ? (
+            ) : null}
+          </div>
+        </form>
+      </section>
+
+      {/* SECTION 2: Portfolio Projects - 2 Columns, Scrollable */}
+      <section className="mt-8 rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:bg-[#1A0E2C]">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <h2 className="text-xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
+            Portfolio Projects
+          </h2>
+          <p className="text-xs font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
+            {works.length} total project(s)
+          </p>
+        </div>
+
+        <div className="mt-4 mb-4">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search by title, client, category, slug"
+            className="w-full rounded-xl border border-[#D9B1FF] bg-white px-3 py-2 text-sm text-[#2A0659] outline-none focus:border-[#7A21C8] dark:border-[#715095] dark:bg-[#2A1842] dark:text-[#F8EEFF]"
+          />
+        </div>
+
+        <div className="relative grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredWorks.map((work, index) => {
+            const rowIndex = Math.floor(index / 3);
+            const colIndex = index % 3;
+
+            return (
+              <div
+                key={work.slug}
+                draggable
+                onDragStart={(event) => {
+                  setDraggingSlug(work.slug);
+                  event.dataTransfer?.setData("text/plain", work.slug);
+                  event.dataTransfer!.effectAllowed = "move";
+                }}
+                onDragEnd={() => {
+                  setDraggingSlug(null);
+                  setDragOverSlug(null);
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer!.dropEffect = "move";
+                  setDragOverSlug(work.slug);
+                }}
+                onDragLeave={() => {
+                  setDragOverSlug(null);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (!draggingSlug || draggingSlug === work.slug) {
+                    setDragOverSlug(null);
+                    return;
+                  }
+                  void moveProjectInList(draggingSlug, work.slug);
+                  setDragOverSlug(null);
+                }}
+                className={`block cursor-move transition-all ${
+                  draggingSlug === work.slug
+                    ? "opacity-50"
+                    : dragOverSlug === work.slug
+                      ? "ring-2 ring-offset-2 ring-[#7A21C8] rounded-2xl"
+                      : ""
+                }`}
+              >
+                <Card className="group relative h-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-1 hover:border-[#7A21C8] hover:shadow-lg dark:border-gray-800 dark:bg-gray-950">
+                  <div className="relative w-full h-52 overflow-hidden rounded-xl mb-4">
+                    <Image
+                      src={work.thumbnail || "/placeholder.jpg"}
+                      alt={`${work.title} thumbnail`}
+                      className="h-52 w-full object-cover"
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                    />
+                  </div>
+
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A21C8] dark:text-[#CFA9FF]">
+                    {work.category}
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold leading-tight text-[#2A0659] dark:text-[#F8EEFF] line-clamp-2">
+                    {work.title}
+                  </h3>
+                  <p className="mt-2 text-xs text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
+                    {work.date} • {work.client}
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(work)}
+                      className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
+                    >
+                      Edit
+                    </button>
+                    <Link
+                      href={`/gallery/${work.slug}`}
+                      className="rounded-full border border-[#D9B1FF] px-3 py-1 text-xs font-semibold text-[#2A0659] hover:bg-[#F8F1FF] dark:border-[#715095] dark:text-[#F8EEFF] dark:hover:bg-[#362055]"
+                    >
+                      Preview
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => void deleteWork(work.slug)}
+                      className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={
+                        work.featured
+                          ? `Unfeature ${work.title}`
+                          : `Feature ${work.title}`
+                      }
+                      onClick={() => void toggleFeatured(work)}
+                      disabled={togglingFeaturedSlug === work.slug}
+                      className={`ml-auto text-lg leading-none transition-colors ${
+                        work.featured
+                          ? "text-[#7A21C8]"
+                          : "text-[#2A0659]/30 hover:text-[#7A21C8]"
+                      } disabled:opacity-50`}
+                    >
+                      {work.featured ? "★" : "☆"}
+                    </button>
+                  </div>
+                </Card>
+              </div>
+            );
+          })}
+        </div>
+
+        {filteredWorks.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
+            <p className="text-sm font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
+              No projects match your search.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* SECTION 3: Featured Projects Layout */}
+      <section className="mt-8 mb-8 rounded-3xl border border-[#EAD2FF] bg-background p-6 shadow-[0_24px_55px_-44px_rgba(42,6,89,0.9)] dark:border-[#5A3D7A] dark:bg-[#1A0E2C]">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-xl font-black tracking-tight text-[#2A0659] dark:text-[#F8EEFF]">
+            Featured Projects Layout
+          </h2>
+          <span className="text-xs font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/90">
+            Drag to reorder home grid
+          </span>
+        </div>
+
+        {orderedFeaturedWorks.length === 0 ? (
+          <div className="rounded-2xl border border-[#F0DFFF] bg-[#FCF8FF]/80 p-6 dark:border-[#5A3D7A] dark:bg-[#221337] text-center">
+            <p className="text-sm font-semibold text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
+              Mark at least one project as featured to customize the home grid
+              layout.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[#F0DFFF] bg-[#FCF8FF]/80 p-4 dark:border-[#5A3D7A] dark:bg-[#221337]">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-6 md:grid-rows-[minmax(180px,auto)_minmax(140px,auto)_minmax(140px,auto)]">
+              {orderedFeaturedWorks.slice(0, 5).map((work, index) => (
                 <button
+                  key={work.slug}
                   type="button"
-                  onClick={resetForm}
-                  className="rounded-full border border-[#D9B1FF] px-5 py-2 text-sm font-semibold text-[#2A0659] dark:border-[#715095] dark:text-[#F8EEFF]"
+                  draggable
+                  onDragStart={() => setDraggingFeaturedSlug(work.slug)}
+                  onDragEnd={() => setDraggingFeaturedSlug(null)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (!draggingFeaturedSlug) return;
+                    void moveFeaturedProject(draggingFeaturedSlug, work.slug);
+                  }}
+                  className={`group block focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl ${
+                    index === 0
+                      ? "md:col-span-4 md:row-span-2"
+                      : "md:col-span-2 md:row-span-1"
+                  } ${
+                    draggingFeaturedSlug === work.slug
+                      ? "ring-2 ring-offset-2 ring-primary"
+                      : ""
+                  } ${isSavingFeaturedOrder ? "opacity-70" : ""}`}
+                  disabled={isSavingFeaturedOrder}
                 >
-                  Cancel
+                  <Card className="flex h-full flex-col overflow-hidden pb-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-lg">
+                    <div className="relative mb-4 w-full flex-1 min-h-[120px] overflow-hidden rounded-xl">
+                      <Image
+                        src={work.thumbnail || "/placeholder.jpg"}
+                        alt={`${work.title} thumbnail`}
+                        className="object-cover"
+                        fill
+                        sizes={
+                          index === 0
+                            ? "(min-width: 768px) 66vw, 100vw"
+                            : "(min-width: 768px) 33vw, 100vw"
+                        }
+                      />
+                    </div>
+                    <div className="shrink-0 px-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                        {work.category}
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                        {work.title}
+                      </h3>
+                      <p className="mt-1 text-xs font-medium text-[#2A0659]/70 dark:text-[#EAD9FF]/88">
+                        Slot {index + 1}
+                      </p>
+                    </div>
+                  </Card>
                 </button>
-              ) : null}
+              ))}
             </div>
-          </form>
-        </section>
-      </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

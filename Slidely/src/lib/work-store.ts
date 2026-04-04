@@ -1,35 +1,10 @@
 import "server-only";
 
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { eq } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { db } from "@/lib/db/client";
 import { works as worksTable, type WorkRow } from "@/lib/db/schema";
-import { projects } from "@/lib/site-data";
 import type { ManagedWork, WorkCategory } from "@/lib/work-types";
-
-const dataDir = path.join(process.cwd(), "data");
-const dataFile = path.join(dataDir, "works.json");
-let hasLoggedDbFallback = false;
-
-const seedWorks: ManagedWork[] = projects.map(toManagedWork);
-
-function hasDatabaseUrl() {
-  return Boolean(process.env.DATABASE_URL);
-}
-
-function reportDatabaseFallback(error: unknown) {
-  if (hasLoggedDbFallback) {
-    return;
-  }
-
-  hasLoggedDbFallback = true;
-  console.warn(
-    "Database unavailable. Falling back to local works data.",
-    error,
-  );
-}
 
 function sanitizeSlug(input: unknown): string {
   return String(input || "")
@@ -54,13 +29,13 @@ function mapDbWorkToManagedWork(work: WorkRow): ManagedWork {
     slug: work.slug,
     title: work.title,
     category: work.category as WorkCategory,
-    year: work.year,
+    date: work.date,
     client: work.client,
-    role: work.role,
     featured: Boolean(work.featured),
     featuredOrder: work.featured
       ? normalizeFeaturedOrder(work.featuredOrder)
       : null,
+    orderedPosition: work.orderedPosition ?? null,
     thumbnail: work.thumbnail,
     pdfUrl: work.pdfUrl,
     summary: work.summary,
@@ -68,23 +43,6 @@ function mapDbWorkToManagedWork(work: WorkRow): ManagedWork {
       Array.isArray(work.slides) && work.slides.length
         ? work.slides
         : undefined,
-  };
-}
-
-function toManagedWork(project: (typeof projects)[number]): ManagedWork {
-  return {
-    slug: project.slug,
-    title: project.title,
-    category: project.category,
-    year: project.year,
-    client: project.client,
-    role: project.role,
-    featured: false,
-    featuredOrder: null,
-    thumbnail: project.thumbnail,
-    pdfUrl: "",
-    summary: project.challenge[0],
-    slides: project.solutionImages.map((item) => item.src),
   };
 }
 
@@ -97,33 +55,6 @@ function normalizeFeaturedOrder(value: unknown): number | null {
   return Math.floor(numeric);
 }
 
-type RawWork = Partial<ManagedWork> & {
-  heroImage?: string;
-  slides?: string[];
-};
-
-function normalizeStoredWork(raw: RawWork): ManagedWork {
-  const normalized = normalizeWorkPayload(raw);
-  const normalizedSlides = Array.isArray(raw.slides)
-    ? normalizeSlides(raw.slides)
-    : undefined;
-
-  return {
-    ...normalized,
-    role: raw.role ?? normalized.role,
-    featuredOrder: Boolean(raw.featured)
-      ? normalizeFeaturedOrder(raw.featuredOrder)
-      : null,
-    thumbnail: raw.thumbnail ?? normalized.thumbnail,
-    pdfUrl: raw.pdfUrl ?? normalized.pdfUrl,
-    summary: raw.summary ?? normalized.summary,
-    slides:
-      normalizedSlides && normalizedSlides.length
-        ? normalizedSlides
-        : undefined,
-  };
-}
-
 export function normalizeWorkPayload(
   payload: Partial<ManagedWork>,
 ): ManagedWork {
@@ -134,15 +65,17 @@ export function normalizeWorkPayload(
     ? normalizeFeaturedOrder(payload.featuredOrder)
     : null;
 
+  const fallbackDate = new Date().getFullYear().toString();
+
   return {
     slug: sanitizeSlug(baseSlug),
     title: (payload.title || "Untitled work").trim(),
     category,
-    year: Number(payload.year) || new Date().getFullYear(),
+    date: (payload.date || fallbackDate).trim(),
     client: (payload.client || "Confidential client").trim(),
-    role: (payload.role || "Presentation Designer").trim(),
     featured,
     featuredOrder,
+    orderedPosition: payload.orderedPosition ?? null,
     thumbnail: (payload.thumbnail || "").trim(),
     pdfUrl: (payload.pdfUrl || "").trim(),
     summary: (
@@ -155,50 +88,25 @@ export function normalizeWorkPayload(
   };
 }
 
-async function ensureSeedFile() {
-  try {
-    await fs.access(dataFile);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(dataFile, JSON.stringify(seedWorks, null, 2), "utf-8");
-  }
-}
-
-async function readWorksFromFile() {
-  await ensureSeedFile();
-  const raw = await fs.readFile(dataFile, "utf-8");
-  const parsed = JSON.parse(raw) as RawWork[];
-  return parsed.map(normalizeStoredWork);
-}
-
 async function readWorksFromSource(): Promise<ManagedWork[]> {
-  if (!hasDatabaseUrl()) {
-    console.warn("DATABASE_URL not set; reading works from local JSON");
-    return readWorksFromFile();
-  }
+  // Order by orderedPosition first (null values go last), then by id as fallback
+  const works = await db
+    .select()
+    .from(worksTable)
+    .orderBy((t) => [
+      // SQL: COALESCE(ordered_position, 999999) to put nulls at end
+      // But since Drizzle doesn't directly support COALESCE in orderBy, we use a workaround
+    ]);
 
-  try {
-    const works = await db.select().from(worksTable).orderBy(worksTable.id);
+  // Sort in JavaScript with nulls at the end
+  const sorted = works.sort((a, b) => {
+    const aPos = a.orderedPosition ?? Number.MAX_SAFE_INTEGER;
+    const bPos = b.orderedPosition ?? Number.MAX_SAFE_INTEGER;
+    return aPos - bPos;
+  });
 
-    if (!works || works.length === 0) {
-      console.warn(
-        "Neon database returned no works rows; falling back to local works.",
-      );
-
-      // Avoid mutating DB and revalidate tags during render path.
-      return await readWorksFromFile();
-    }
-
-    console.info(`Loaded ${works.length} works from Neon database`);
-    return works.map(mapDbWorkToManagedWork);
-  } catch (error) {
-    console.error(
-      "Neon database query failed; check connectivity and schema",
-      error,
-    );
-    reportDatabaseFallback(error);
-    return readWorksFromFile();
-  }
+  console.info(`Loaded ${sorted.length} works from Neon database`);
+  return sorted.map(mapDbWorkToManagedWork);
 }
 
 const getCachedWorks = unstable_cache(readWorksFromSource, ["works-all"], {
@@ -258,57 +166,56 @@ export function getNextFeaturedOrder(works: ManagedWork[]): number {
 }
 
 export async function saveWorks(works: ManagedWork[]) {
-  if (hasDatabaseUrl()) {
-    try {
-      await db.delete(worksTable);
+  // Use upsert/on conflict strategy to prevent data loss
+  for (const work of works) {
+    const workData = {
+      slug: work.slug,
+      title: work.title,
+      category: work.category,
+      date: work.date,
+      client: work.client,
+      featured: Boolean(work.featured),
+      featuredOrder: work.featured
+        ? normalizeFeaturedOrder(work.featuredOrder)
+        : null,
+      orderedPosition: work.orderedPosition ?? null,
+      thumbnail: work.thumbnail,
+      pdfUrl: work.pdfUrl,
+      summary: work.summary,
+      slides: normalizeSlides(work.slides || []),
+    };
 
-      if (works.length > 0) {
-        await db.insert(worksTable).values(
-          works.map((work) => ({
-            slug: work.slug,
-            title: work.title,
-            category: work.category,
-            year: work.year,
-            client: work.client,
-            role: work.role,
-            featured: Boolean(work.featured),
-            featuredOrder: work.featured
-              ? normalizeFeaturedOrder(work.featuredOrder)
-              : null,
-            thumbnail: work.thumbnail,
-            pdfUrl: work.pdfUrl,
-            summary: work.summary,
-            slides: normalizeSlides(work.slides || []),
-          })),
-        );
-      }
-      revalidateTag("works", "max");
-      return;
-    } catch (error) {
-      reportDatabaseFallback(error);
-    }
+    // Upsert: Insert or update existing record by slug
+    await db
+      .insert(worksTable)
+      .values(workData)
+      .onConflictDoUpdate({
+        target: worksTable.slug,
+        set: {
+          title: workData.title,
+          category: workData.category,
+          date: workData.date,
+          client: workData.client,
+          featured: workData.featured,
+          featuredOrder: workData.featuredOrder,
+          orderedPosition: workData.orderedPosition,
+          thumbnail: workData.thumbnail,
+          pdfUrl: workData.pdfUrl,
+          summary: workData.summary,
+          slides: workData.slides,
+          updatedAt: new Date(),
+        },
+      });
   }
-
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(dataFile, JSON.stringify(works, null, 2), "utf-8");
   revalidateTag("works", "max");
 }
 
 export async function getWorkBySlug(slug: string) {
-  if (hasDatabaseUrl()) {
-    try {
-      const rows = await db
-        .select()
-        .from(worksTable)
-        .where(eq(worksTable.slug, slug))
-        .limit(1);
-      const row = rows[0];
-      return row ? mapDbWorkToManagedWork(row) : undefined;
-    } catch (error) {
-      reportDatabaseFallback(error);
-    }
-  }
-
-  const works = await getWorks();
-  return works.find((work) => work.slug === slug);
+  const rows = await db
+    .select()
+    .from(worksTable)
+    .where(eq(worksTable.slug, slug))
+    .limit(1);
+  const row = rows[0];
+  return row ? mapDbWorkToManagedWork(row) : undefined;
 }

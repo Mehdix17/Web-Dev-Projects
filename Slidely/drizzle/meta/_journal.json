@@ -15,6 +15,27 @@
       "when": 1775000000000,
       "tag": "0001_featured_order",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775265000000,
+      "tag": "0002_remove_role_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775268000000,
+      "tag": "0003_year_to_date_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775268060000,
+      "tag": "0004_ordered_position",
+      "breakpoints": true
     }
   ]
 }

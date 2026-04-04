@@ -107,7 +107,7 @@ export function GalleryClient({ initialWorks }: GalleryClientProps) {
       if (!normalizedQuery) return true;
 
       const searchValue =
-        `${project.title} ${project.client} ${project.category} ${project.year}`.toLowerCase();
+        `${project.title} ${project.client} ${project.category} ${project.date}`.toLowerCase();
       return searchValue.includes(normalizedQuery);
     });
   }, [initialWorks, selectedCategory, searchQuery]);
@@ -191,7 +191,7 @@ export function GalleryClient({ initialWorks }: GalleryClientProps) {
               setSearchQuery(event.target.value);
             });
           }}
-          placeholder="Search by title, client, category, year"
+          placeholder="Search by title, client, category, date"
           className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-[#2A0659] outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
         />
       </div>

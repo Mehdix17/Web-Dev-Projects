@@ -1,12 +1,228 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { PresentationViewer } from "@/components/work/PresentationViewer";
 import { getCurrentAdminUser } from "@/lib/admin-auth";
 import { getWorks } from "@/lib/work-store";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+type MarkdownBlock =
+  | { type: "heading"; level: 1 | 2 | 3; text: string }
+  | { type: "paragraph"; lines: string[] }
+  | { type: "unordered-list"; items: string[] }
+  | { type: "ordered-list"; items: string[] };
+
+function parseInlineMarkdown(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const pattern =
+    /(\[[^\]]+\]\((?:https?:\/\/|\/)[^)\s]+\)|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  let lastIndex = 0;
+  let key = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    const token = match[0];
+    const start = match.index ?? 0;
+
+    if (start > lastIndex) {
+      nodes.push(text.slice(lastIndex, start));
+    }
+
+    if (token.startsWith("**") && token.endsWith("**")) {
+      nodes.push(<strong key={`bold-${key++}`}>{token.slice(2, -2)}</strong>);
+    } else if (token.startsWith("*") && token.endsWith("*")) {
+      nodes.push(<em key={`italic-${key++}`}>{token.slice(1, -1)}</em>);
+    } else if (token.startsWith("`") && token.endsWith("`")) {
+      nodes.push(
+        <code
+          key={`code-${key++}`}
+          className="rounded bg-[#EAD2FF]/45 px-1 py-0.5 text-[0.92em] dark:bg-[#5A3D7A]/50"
+        >
+          {token.slice(1, -1)}
+        </code>,
+      );
+    } else if (token.startsWith("[")) {
+      const linkMatch = token.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+      if (linkMatch) {
+        const [, label, href] = linkMatch;
+        const isExternal = /^https?:\/\//i.test(href);
+        nodes.push(
+          <a
+            key={`link-${key++}`}
+            href={href}
+            target={isExternal ? "_blank" : undefined}
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            className="font-semibold text-[#7A21C8] underline underline-offset-2 transition-colors hover:text-foreground"
+          >
+            {label}
+          </a>,
+        );
+      } else {
+        nodes.push(token);
+      }
+    } else {
+      nodes.push(token);
+    }
+
+    lastIndex = start + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
+}
+
+function parseSummaryMarkdown(input: string): MarkdownBlock[] {
+  const lines = input.replace(/\r\n?/g, "\n").split("\n");
+  const blocks: MarkdownBlock[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index].trimEnd();
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      index += 1;
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length as 1 | 2 | 3;
+      blocks.push({
+        type: "heading",
+        level,
+        text: headingMatch[2].trim(),
+      });
+      index += 1;
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (index < lines.length) {
+        const candidate = lines[index].trim();
+        const listMatch = candidate.match(/^[-*]\s+(.+)$/);
+        if (!listMatch) break;
+        items.push(listMatch[1].trim());
+        index += 1;
+      }
+      blocks.push({ type: "unordered-list", items });
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (index < lines.length) {
+        const candidate = lines[index].trim();
+        const listMatch = candidate.match(/^\d+\.\s+(.+)$/);
+        if (!listMatch) break;
+        items.push(listMatch[1].trim());
+        index += 1;
+      }
+      blocks.push({ type: "ordered-list", items });
+      continue;
+    }
+
+    const paragraphLines: string[] = [];
+    while (index < lines.length) {
+      const candidate = lines[index].trimEnd();
+      const candidateTrimmed = candidate.trim();
+      if (!candidateTrimmed) break;
+      if (/^(#{1,3})\s+/.test(candidateTrimmed)) break;
+      if (/^[-*]\s+/.test(candidateTrimmed)) break;
+      if (/^\d+\.\s+/.test(candidateTrimmed)) break;
+      paragraphLines.push(candidateTrimmed);
+      index += 1;
+    }
+    blocks.push({ type: "paragraph", lines: paragraphLines });
+  }
+
+  return blocks;
+}
+
+function renderSummaryMarkdown(input: string): ReactNode {
+  const blocks = parseSummaryMarkdown(input);
+
+  return blocks.map((block, blockIndex) => {
+    const key = `summary-${blockIndex}`;
+
+    if (block.type === "heading") {
+      if (block.level === 1) {
+        return (
+          <h3
+            key={key}
+            className="mt-4 text-xl font-black tracking-tight text-foreground first:mt-0"
+          >
+            {parseInlineMarkdown(block.text)}
+          </h3>
+        );
+      }
+      if (block.level === 2) {
+        return (
+          <h4
+            key={key}
+            className="mt-4 text-lg font-black tracking-tight text-foreground first:mt-0"
+          >
+            {parseInlineMarkdown(block.text)}
+          </h4>
+        );
+      }
+      return (
+        <h5
+          key={key}
+          className="mt-3 text-base font-bold tracking-tight text-foreground first:mt-0"
+        >
+          {parseInlineMarkdown(block.text)}
+        </h5>
+      );
+    }
+
+    if (block.type === "unordered-list") {
+      return (
+        <ul
+          key={key}
+          className="mt-3 list-disc space-y-1 pl-5 text-sm leading-relaxed text-foreground/75 md:text-base"
+        >
+          {block.items.map((item, itemIndex) => (
+            <li key={`${key}-ul-${itemIndex}`}>{parseInlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+    }
+
+    if (block.type === "ordered-list") {
+      return (
+        <ol
+          key={key}
+          className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-relaxed text-foreground/75 md:text-base"
+        >
+          {block.items.map((item, itemIndex) => (
+            <li key={`${key}-ol-${itemIndex}`}>{parseInlineMarkdown(item)}</li>
+          ))}
+        </ol>
+      );
+    }
+
+    return (
+      <p
+        key={key}
+        className="mt-3 text-sm leading-relaxed text-foreground/75 md:text-base"
+      >
+        {block.lines.map((line, lineIndex) => (
+          <span key={`${key}-line-${lineIndex}`}>
+            {lineIndex > 0 ? <br /> : null}
+            {parseInlineMarkdown(line)}
+          </span>
+        ))}
+      </p>
+    );
+  });
 }
 
 export default async function CaseStudyPage({ params }: PageProps) {
@@ -23,6 +239,7 @@ export default async function CaseStudyPage({ params }: PageProps) {
     src,
     alt: `${project.title} slide ${index + 1}`,
   }));
+  const slideCount = viewerSlides.length;
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-10 md:py-12">
@@ -44,18 +261,18 @@ export default async function CaseStudyPage({ params }: PageProps) {
           </div>
           <div className="rounded-2xl border border-[#EAD2FF] bg-background px-4 py-3 shadow-[0_14px_28px_-24px_rgba(42,6,89,0.85)] dark:border-[#5A3D7A] dark:bg-[#1B0C30]">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#7A21C8] dark:text-[#CFA9FF]">
-              Role
+              Slides
             </p>
             <p className="mt-1 text-sm font-semibold text-foreground">
-              {project.role}
+              {slideCount}
             </p>
           </div>
           <div className="rounded-2xl border border-[#EAD2FF] bg-background px-4 py-3 shadow-[0_14px_28px_-24px_rgba(42,6,89,0.85)] dark:border-[#5A3D7A] dark:bg-[#1B0C30]">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#7A21C8] dark:text-[#CFA9FF]">
-              Year
+              Date
             </p>
             <p className="mt-1 text-sm font-semibold text-foreground">
-              {project.year}
+              {project.date}
             </p>
           </div>
         </div>
@@ -89,14 +306,9 @@ export default async function CaseStudyPage({ params }: PageProps) {
           >
             Quick description
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-foreground/75 md:text-base">
-            {project.summary}
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-foreground/75 md:text-base">
-            This presentation was designed to balance narrative clarity, visual
-            consistency, and practical slide usability for real client
-            conversations.
-          </p>
+          <div className="text-sm leading-relaxed text-foreground/75 md:text-base">
+            {renderSummaryMarkdown(project.summary)}
+          </div>
         </section>
       </div>
 
@@ -141,7 +353,7 @@ export default async function CaseStudyPage({ params }: PageProps) {
                 {item.title}
               </h3>
               <p className="mt-1 text-sm text-foreground/70">
-                {item.client} • {item.year}
+                {item.client} • {item.date}
               </p>
             </Link>
           ))}

@@ -34,7 +34,13 @@ export async function PATCH(request: Request) {
 
     const slugToWork = new Map(works.map((work) => [work.slug, work]));
     const reordered = orderedSlugs
-      .map((slug) => slugToWork.get(slug))
+      .map((slug, index) => {
+        const work = slugToWork.get(slug);
+        if (work) {
+          return { ...work, orderedPosition: index };
+        }
+        return undefined;
+      })
       .filter(Boolean) as typeof works;
 
     await saveWorks(reordered);
