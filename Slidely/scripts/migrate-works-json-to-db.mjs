@@ -25,9 +25,8 @@ function normalizeRecord(record) {
     slug: sanitizeSlug(baseSlug),
     title: String(record.title || "Untitled work").trim(),
     category: String(record.category || "Pitch Decks").trim(),
-    year: Number(record.year) || new Date().getFullYear(),
+    date: String(record.date || record.year || new Date().getFullYear()).trim(),
     client: String(record.client || "Confidential client").trim(),
-    role: String(record.role || "Presentation Designer").trim(),
     thumbnail: String(record.thumbnail || "").trim(),
     pdfUrl: String(record.pdfUrl || "").trim(),
     summary: String(
@@ -60,15 +59,14 @@ async function main() {
   for (const work of works) {
     await sql`
       INSERT INTO works (
-        slug, title, category, year, client, role, thumbnail, pdf_url, summary, slides
+        slug, title, category, date, client, thumbnail, pdf_url, summary, slides
       )
       VALUES (
         ${work.slug},
         ${work.title},
         ${work.category},
-        ${work.year},
+        ${work.date},
         ${work.client},
-        ${work.role},
         ${work.thumbnail},
         ${work.pdfUrl},
         ${work.summary},
