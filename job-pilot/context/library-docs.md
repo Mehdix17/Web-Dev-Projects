@@ -174,7 +174,6 @@ export async function searchJobs(
     what: jobTitle,
     category: "it-jobs", // always filter to IT jobs
     results_per_page: "10",
-    "content-type": "application/json",
   });
 
   // Only add where if location is provided

@@ -6,6 +6,8 @@ This folder holds all React components for the JobPilot app. It is split into tw
 
 - `layout/` — Shared layout components: Navbar and Footer. Used on every page via the root layout or page composition.
 - `homepage/` — Homepage only components: Hero, DashboardPreview, HowItWorks, Features, Testimonial, CTASection.
+- `profile/` — Profile only components: CompletionIndicator, ResumeUpload, ProfileForm, ProfileContainer, and ResumePDF.
+- `ui/` — Reusable shared user interface elements: DatePicker.
 
 ## Conventions
 
@@ -32,6 +34,14 @@ components/
     Features.tsx          — two column: agnet-log.png left, feature bullets right
     Testimonial.tsx       — pull quote, user avatar, attribution
     CTASection.tsx        — bottom CTA mirroring the hero
+  profile/
+    CompletionIndicator.tsx — circular progress ring and warning banner
+    ResumeUpload.tsx        — dropzone card and trigger buttons
+    ProfileForm.tsx         — five section structured form
+    ProfileContainer.tsx    — client state container and calculator
+    ResumePDF.tsx           — react pdf export layout template
+  ui/
+    DatePicker.tsx          — reusable modern calendar date picker popover
 ```
 
 ## Component patterns (see also context/ui-registry.md)

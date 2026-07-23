@@ -177,7 +177,12 @@ Payments currently has TypeScript SDK docs only. Use the Payments API reference 
 - Serverless functions have one endpoint and do not support nested route paths
 - Storage: Upload files to buckets, store URLs in database
 - AI integrations should call OpenRouter directly with `baseURL: "https://openrouter.ai/api/v1"` and a server-side `OPENROUTER_API_KEY`
+- The `getAiCompletion` helper in `lib/utils.ts` provides OpenRouter free model fallback. Configure `OPENROUTER_API_KEY1`, `OPENROUTER_API_KEY2`, and `OPENROUTER_API_KEY3` in `.env.local`. The helper tries each key and model until one succeeds.
 - **EXTRA IMPORTANT**: Use Tailwind CSS 3.4 (do not upgrade to v4). Lock these dependencies in `package.json`
+
+## Agent skills
+
+Declined: pdf-parse · @react-pdf/renderer · openai
 
 ## Context files
 

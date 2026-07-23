@@ -1,0 +1,655 @@
+diff --git a/job-pilot/actions/auth.ts b/job-pilot/actions/auth.ts
+new file mode 100644
+index 0000000..0a174f8
+--- /dev/null
++++ b/job-pilot/actions/auth.ts
+@@ -0,0 +1,65 @@
++"use server";
++
++import { cookies } from "next/headers";
++import { createInsforgeServer } from "@/lib/insforge-server";
++
++type OAuthProvider = "google" | "github";
++
++export async function signInWithOAuthAction(provider: OAuthProvider) {
++  try {
++    const insforge = await createInsforgeServer();
++    
++    // We get the origin on the server side or construct it.
++    // In production, we'd use the actual domain. For development, default to localhost:3000.
++    const origin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
++    const redirectTo = `${origin}/callback`;
++
++    // signInWithOAuth generates OAuth URL and code verifier
++    const { data, error } = await insforge.auth.signInWithOAuth(provider, {
++      redirectTo,
++      skipBrowserRedirect: true,
++    });
++
++    if (error || !data?.url) {
++      console.error(`[actions/auth] ${provider} auth init error:`, error);
++      return { success: false, error: error?.message || "Failed to initialize login" };
++    }
++
++    const cookieStore = await cookies();
++    
++    // Store verifier cookie for the callback route
++    cookieStore.set("insforge_pkce_verifier", data.codeVerifier!, {
++      httpOnly: true,
++      secure: process.env.NODE_ENV === "production",
++      maxAge: 300, // 5 minutes
++      path: "/",
++      sameSite: "lax",
++    });
++
++    return { success: true, url: data.url };
++  } catch (error) {
++    console.error(`[actions/auth] ${provider} login exception:`, error);
++    return { success: false, error: "An unexpected error occurred" };
++  }
++}
++
++export async function signOutAction() {
++  try {
++    const insforge = await createInsforgeServer();
++    const { error } = await insforge.auth.signOut();
++    if (error) {
++      console.error("[actions/auth] Sign out error:", error);
++      return { success: false, error: error.message };
++    }
++    
++    const cookieStore = await cookies();
++    // Clear cookies
++    cookieStore.delete("insforge_access_token");
++    cookieStore.delete("insforge_refresh_token");
++    
++    return { success: true };
++  } catch (error) {
++    console.error("[actions/auth] Sign out exception:", error);
++    return { success: false, error: "An unexpected error occurred" };
++  }
++}
+diff --git a/job-pilot/app/(auth)/callback/route.ts b/job-pilot/app/(auth)/callback/route.ts
+new file mode 100644
+index 0000000..23e61a8
+--- /dev/null
++++ b/job-pilot/app/(auth)/callback/route.ts
+@@ -0,0 +1,47 @@
++import { NextRequest, NextResponse } from "next/server";
++import { cookies } from "next/headers";
++import { createAuthActions } from "@insforge/sdk/ssr";
++
++export async function GET(request: NextRequest) {
++  const { searchParams } = new URL(request.url);
++  const code = searchParams.get("insforge_code");
++  const errorMsg = searchParams.get("error");
++
++  const origin = request.nextUrl.origin;
++
++  if (errorMsg) {
++    console.error("[auth/callback] OAuth provider error:", errorMsg);
++    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(errorMsg)}`, origin));
++  }
++
++  if (!code) {
++    console.warn("[auth/callback] No code parameter found");
++    return NextResponse.redirect(new URL("/login", origin));
++  }
++
++  const cookieStore = await cookies();
++  const verifier = cookieStore.get("insforge_pkce_verifier")?.value;
++
++  if (!verifier) {
++    console.error("[auth/callback] PKCE verifier cookie not found");
++    return NextResponse.redirect(new URL("/login?error=Session expired. Please try signing in again.", origin));
++  }
++
++  // Create authActions with writable cookie store
++  const authActions = createAuthActions({
++    cookies: cookieStore,
++  });
++
++  const { error } = await authActions.exchangeOAuthCode(code, verifier);
++
++  // Clean up verifier cookie
++  cookieStore.delete("insforge_pkce_verifier");
++
++  if (error) {
++    console.error("[auth/callback] OAuth code exchange error:", error);
++    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, origin));
++  }
++
++  // Redirect to dashboard on success
++  return NextResponse.redirect(new URL("/dashboard", origin));
++}
+diff --git a/job-pilot/app/(auth)/login/page.tsx b/job-pilot/app/(auth)/login/page.tsx
+new file mode 100644
+index 0000000..9e291f8
+--- /dev/null
++++ b/job-pilot/app/(auth)/login/page.tsx
+@@ -0,0 +1,150 @@
++"use client";
++
++import React, { useState, useEffect, Suspense } from "react";
++import { useSearchParams } from "next/navigation";
++import { signInWithOAuthAction } from "@/actions/auth";
++import { Loader2, AlertCircle } from "lucide-react";
++
++function LoginForm() {
++  const searchParams = useSearchParams();
++  const [error, setError] = useState<string | null>(null);
++  const [loadingProvider, setLoadingProvider] = useState<"google" | "github" | null>(null);
++
++  useEffect(() => {
++    const errorParam = searchParams.get("error");
++    if (errorParam) {
++      setError(decodeURIComponent(errorParam));
++    }
++  }, [searchParams]);
++
++  const handleOAuthLogin = async (provider: "google" | "github") => {
++    try {
++      setError(null);
++      setLoadingProvider(provider);
++      
++      const response = await signInWithOAuthAction(provider);
++      
++      if (!response.success || !response.url) {
++        setError(response.error || "Failed to initialize login flow");
++        setLoadingProvider(null);
++        return;
++      }
++      
++      window.location.href = response.url;
++    } catch (err) {
++      console.error(`[login] ${provider} login error:`, err);
++      setError("An unexpected error occurred. Please try again.");
++      setLoadingProvider(null);
++    }
++  };
++
++  return (
++    <div className="z-10 w-full max-w-md space-y-8">
++      {/* Logo Section */}
++      <div className="flex flex-col items-center">
++        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-accent to-accent-dark shadow-md shadow-accent/20 transition-transform duration-300 hover:scale-105">
++          <span className="text-xl font-bold text-accent-foreground select-none">JP</span>
++        </div>
++        <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-text-primary">
++          Welcome to JobPilot
++        </h2>
++        <p className="mt-2 text-center text-sm text-text-secondary">
++          Your AI-powered job hunting assistant
++        </p>
++      </div>
++
++      {/* Card Container */}
++      <div className="bg-surface border border-border shadow-md rounded-2xl p-8 space-y-6">
++        <div className="space-y-1">
++          <h3 className="text-lg font-semibold text-text-primary">Sign In</h3>
++          <p className="text-sm text-text-muted">Connect your account to get started.</p>
++        </div>
++
++        {/* Error Message */}
++        {error && (
++          <div className="flex items-start gap-2.5 rounded-lg bg-error/10 border border-error/20 p-4 text-sm text-error">
++            <AlertCircle className="h-5 w-5 shrink-0" />
++            <div>
++              <p className="font-semibold">Authentication Error</p>
++              <p className="mt-0.5">{error}</p>
++            </div>
++          </div>
++        )}
++
++        {/* Login Buttons */}
++        <div className="space-y-3">
++          {/* Google Button */}
++          <button
++            onClick={() => handleOAuthLogin("google")}
++            disabled={loadingProvider !== null}
++            className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text-primary shadow-sm transition-all duration-200 hover:bg-surface-secondary hover:border-border-muted focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed select-none"
++          >
++            {loadingProvider === "google" ? (
++              <Loader2 className="h-5 w-5 animate-spin text-text-secondary" />
++            ) : (
++              <svg className="h-5 w-5" viewBox="0 0 24 24" width="24" height="24">
++                <path
++                  fill="#4285F4"
++                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
++                />
++                <path
++                  fill="#34A853"
++                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
++                />
++                <path
++                  fill="#FBBC05"
++                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
++                />
++                <path
++                  fill="#EA4335"
++                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
++                />
++              </svg>
++            )}
++            <span>Continue with Google</span>
++          </button>
++
++          {/* GitHub Button */}
++          <button
++            onClick={() => handleOAuthLogin("github")}
++            disabled={loadingProvider !== null}
++            className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text-primary shadow-sm transition-all duration-200 hover:bg-surface-secondary hover:border-border-muted focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed select-none"
++          >
++            {loadingProvider === "github" ? (
++              <Loader2 className="h-5 w-5 animate-spin text-text-secondary" />
++            ) : (
++              <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24" width="24" height="24">
++                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.193 22 16.44 22 12.017 22 6.484 17.522 2 12 2z" />
++              </svg>
++            )}
++            <span>Continue with GitHub</span>
++          </button>
++        </div>
++      </div>
++
++      {/* Footer info / privacy */}
++      <p className="text-center text-xs text-text-muted">
++        By signing in, you agree to our Terms of Service and Privacy Policy.
++      </p>
++    </div>
++  );
++}
++
++export default function LoginPage() {
++  return (
++    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8 overflow-hidden">
++      {/* Decorative Background Elements */}
++      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-accent-light opacity-30 blur-[120px] pointer-events-none" />
++      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-accent opacity-20 blur-[150px] pointer-events-none" />
++
++      <Suspense fallback={
++        <div className="z-10 flex flex-col items-center justify-center space-y-4">
++          <Loader2 className="h-10 w-10 animate-spin text-accent" />
++          <p className="text-sm text-text-secondary">Loading sign in...</p>
++        </div>
++      }>
++        <LoginForm />
++      </Suspense>
++    </div>
++  );
++}
+diff --git a/job-pilot/app/api/auth/refresh/route.ts b/job-pilot/app/api/auth/refresh/route.ts
+new file mode 100644
+index 0000000..367dd0a
+--- /dev/null
++++ b/job-pilot/app/api/auth/refresh/route.ts
+@@ -0,0 +1,3 @@
++import { createRefreshAuthRouter } from "@insforge/sdk/ssr";
++
++export const { POST } = createRefreshAuthRouter();
+diff --git a/job-pilot/app/dashboard/page.tsx b/job-pilot/app/dashboard/page.tsx
+new file mode 100644
+index 0000000..88c368f
+--- /dev/null
++++ b/job-pilot/app/dashboard/page.tsx
+@@ -0,0 +1,77 @@
++import { redirect } from "next/navigation";
++import { createInsforgeServer } from "@/lib/insforge-server";
++import { signOutAction } from "@/actions/auth";
++import { Navbar } from "@/components/layout/Navbar";
++
++export default async function DashboardPage() {
++  const insforge = await createInsforgeServer();
++  const { data, error } = await insforge.auth.getCurrentUser();
++
++  if (error || !data?.user) {
++    redirect("/login");
++  }
++
++  const user = data.user;
++
++  async function handleSignOut() {
++    "use server";
++    await signOutAction();
++    redirect("/login");
++  }
++
++  return (
++    <div className="min-h-screen bg-background flex flex-col justify-between">
++      <div>
++        <Navbar />
++        
++        <div className="max-w-4xl mx-auto w-full p-8 flex flex-col justify-center items-center mt-12">
++          <div className="bg-surface border border-border shadow-md rounded-2xl p-8 max-w-lg w-full space-y-6 text-center">
++            <div className="h-16 w-16 mx-auto flex items-center justify-center rounded-2xl bg-gradient-to-tr from-accent to-accent-dark shadow-md shadow-accent/20">
++              <span className="text-2xl font-bold text-accent-foreground">JP</span>
++            </div>
++            
++            <div className="space-y-2">
++              <h1 className="text-2xl font-bold text-text-primary">Welcome to JobPilot Dashboard</h1>
++              <p className="text-text-secondary text-sm">You have successfully signed in via InsForge OAuth!</p>
++            </div>
++
++            <div className="border-t border-border pt-6 text-left space-y-4">
++              <h2 className="text-sm font-semibold text-text-dark uppercase tracking-wider">User Details</h2>
++              <div className="space-y-2 text-sm text-text-primary">
++                <div className="flex justify-between">
++                  <span className="text-text-secondary font-medium">User ID:</span>
++                  <span className="font-mono text-xs">{user.id}</span>
++                </div>
++                <div className="flex justify-between">
++                  <span className="text-text-secondary font-medium">Email:</span>
++                  <span>{user.email}</span>
++                </div>
++                <div className="flex justify-between">
++                  <span className="text-text-secondary font-medium">Name:</span>
++                  <span>{user.profile?.name || "Not set"}</span>
++                </div>
++                <div className="flex justify-between">
++                  <span className="text-text-secondary font-medium">Providers:</span>
++                  <span className="capitalize">{user.providers?.join(", ")}</span>
++                </div>
++              </div>
++            </div>
++
++            <form action={handleSignOut} className="pt-4">
++              <button
++                type="submit"
++                className="w-full bg-accent text-accent-foreground rounded-lg py-2 text-sm font-medium hover:bg-accent-dark transition-colors duration-200"
++              >
++                Sign Out
++              </button>
++            </form>
++          </div>
++        </div>
++      </div>
++      
++      <p className="text-center text-xs text-text-muted py-8">
++        JobPilot &copy; 2026. Built with Next.js and InsForge.
++      </p>
++    </div>
++  );
++}
+diff --git a/job-pilot/app/layout.tsx b/job-pilot/app/layout.tsx
+new file mode 100644
+index 0000000..7980ca4
+--- /dev/null
++++ b/job-pilot/app/layout.tsx
+@@ -0,0 +1,20 @@
++import type { Metadata } from "next";
++import "./globals.css";
++
++export const metadata: Metadata = {
++  title: "JobPilot — AI-Powered Job Hunting Assistant",
++  description:
++    "JobPilot finds the jobs, researches the companies, and gives you everything you need to stand out. Stop applying blind.",
++};
++
++export default function RootLayout({
++  children,
++}: Readonly<{
++  children: React.ReactNode;
++}>) {
++  return (
++    <html lang="en" className="h-full antialiased font-sans">
++      <body className="min-h-full flex flex-col">{children}</body>
++    </html>
++  );
++}
+diff --git a/job-pilot/components/layout/Footer.tsx b/job-pilot/components/layout/Footer.tsx
+new file mode 100644
+index 0000000..4b5d90a
+--- /dev/null
++++ b/job-pilot/components/layout/Footer.tsx
+@@ -0,0 +1,43 @@
++import Image from "next/image";
++import Link from "next/link";
++
++export function Footer() {
++  return (
++    <footer className="w-full bg-surface border-t border-border">
++      <div className="w-full max-w-[1440px] mx-auto px-6 py-6 flex items-center justify-between">
++        {/* Logo */}
++        <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
++          <Image
++            src="/logo.png"
++            alt="JobPilot"
++            width={96}
++            height={32}
++            className="object-contain"
++          />
++        </Link>
++
++        {/* Links */}
++        <nav className="flex items-center gap-8">
++          <Link
++            href="/dashboard"
++            className="text-text-secondary text-sm hover:text-text-primary transition-colors"
++          >
++            Dashboard
++          </Link>
++          <Link
++            href="#"
++            className="text-text-secondary text-sm hover:text-text-primary transition-colors"
++          >
++            Privacy Policy
++          </Link>
++          <Link
++            href="#"
++            className="text-text-secondary text-sm hover:text-text-primary transition-colors"
++          >
++            Terms & Condition
++          </Link>
++        </nav>
++      </div>
++    </footer>
++  );
++}
+diff --git a/job-pilot/components/layout/Navbar.tsx b/job-pilot/components/layout/Navbar.tsx
+new file mode 100644
+index 0000000..25935ab
+--- /dev/null
++++ b/job-pilot/components/layout/Navbar.tsx
+@@ -0,0 +1,55 @@
++"use client";
++
++import Image from "next/image";
++import Link from "next/link";
++import { usePathname } from "next/navigation";
++
++export function Navbar() {
++  const pathname = usePathname();
++
++  const getLinkClass = (href: string) => {
++    const isActive = pathname === href;
++    return `font-medium text-sm transition-colors ${
++      isActive ? "text-accent" : "text-text-dark hover:text-accent"
++    }`;
++  };
++
++  return (
++    <header className="w-full bg-surface border-b border-border h-16 flex items-center px-6">
++      <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between">
++        {/* Logo */}
++        <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
++          <Image
++            src="/logo.png"
++            alt="JobPilot"
++            width={96}
++            height={32}
++            priority
++            className="object-contain"
++          />
++        </Link>
++
++        {/* Nav links */}
++        <nav className="flex items-center gap-8">
++          <Link href="/dashboard" className={getLinkClass("/dashboard")}>
++            Dashboard
++          </Link>
++          <Link href="/find-jobs" className={getLinkClass("/find-jobs")}>
++            Find jobs
++          </Link>
++          <Link href="/profile" className={getLinkClass("/profile")}>
++            Profile
++          </Link>
++        </nav>
++
++        {/* CTA */}
++        <Link
++          href="/login"
++          className="bg-text-primary text-accent-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
++        >
++          Start for free
++        </Link>
++      </div>
++    </header>
++  );
++}
+diff --git a/job-pilot/lib/insforge-client.ts b/job-pilot/lib/insforge-client.ts
+new file mode 100644
+index 0000000..82e6df7
+--- /dev/null
++++ b/job-pilot/lib/insforge-client.ts
+@@ -0,0 +1,6 @@
++import { createBrowserClient } from "@insforge/sdk/ssr";
++
++export const insforge = createBrowserClient({
++  baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
++  anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
++});
+diff --git a/job-pilot/lib/insforge-server.ts b/job-pilot/lib/insforge-server.ts
+new file mode 100644
+index 0000000..d7dfb6d
+--- /dev/null
++++ b/job-pilot/lib/insforge-server.ts
+@@ -0,0 +1,13 @@
++import { createServerClient } from "@insforge/sdk/ssr";
++import { cookies } from "next/headers";
++
++export const createInsforgeServer = async () => {
++  const cookieStore = await cookies();
++  return createServerClient({
++    baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
++    anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
++    cookies: {
++      get: (name) => cookieStore.get(name)?.value,
++    },
++  });
++};
+diff --git a/job-pilot/lib/utils.ts b/job-pilot/lib/utils.ts
+new file mode 100644
+index 0000000..31977f7
+--- /dev/null
++++ b/job-pilot/lib/utils.ts
+@@ -0,0 +1 @@
++export const MATCH_THRESHOLD = 70;
+diff --git a/job-pilot/next.config.ts b/job-pilot/next.config.ts
+new file mode 100644
+index 0000000..e9ffa30
+--- /dev/null
++++ b/job-pilot/next.config.ts
+@@ -0,0 +1,7 @@
++import type { NextConfig } from "next";
++
++const nextConfig: NextConfig = {
++  /* config options here */
++};
++
++export default nextConfig;
+diff --git a/job-pilot/proxy.ts b/job-pilot/proxy.ts
+new file mode 100644
+index 0000000..e4a692e
+--- /dev/null
++++ b/job-pilot/proxy.ts
+@@ -0,0 +1,90 @@
++import { NextResponse } from "next/server";
++import type { NextRequest } from "next/server";
++import { updateSession } from "@insforge/sdk/ssr";
++import type { CookieStore, CookieOptions } from "@insforge/sdk/ssr";
++
++export async function proxy(request: NextRequest) {
++  const { pathname } = request.nextUrl;
++  
++  // Create base response
++  const response = NextResponse.next();
++  
++  // Implement compatible CookieStore for Request cookies
++  const requestCookies: CookieStore = {
++    get: (name: string) => request.cookies.get(name)?.value,
++    set: (nameOrOptions: any, value?: any, options?: CookieOptions) => {
++      if (typeof nameOrOptions === "string") {
++        request.cookies.set(nameOrOptions, value);
++        response.cookies.set(nameOrOptions, value, options);
++      } else {
++        request.cookies.set(nameOrOptions.name, nameOrOptions.value);
++        response.cookies.set(nameOrOptions.name, nameOrOptions.value, nameOrOptions);
++      }
++    },
++    delete: (nameOrOptions: any, options?: CookieOptions) => {
++      if (typeof nameOrOptions === "string") {
++        request.cookies.delete(nameOrOptions);
++        response.cookies.set(nameOrOptions, "", { ...options, maxAge: 0 });
++      } else {
++        request.cookies.delete(nameOrOptions.name);
++        response.cookies.set(nameOrOptions.name, "", { ...nameOrOptions, maxAge: 0 });
++      }
++    }
++  };
++
++  // Implement compatible CookieStore for Response cookies
++  const responseCookies: CookieStore = {
++    get: (name: string) => response.cookies.get(name)?.value,
++    set: (nameOrOptions: any, value?: any, options?: CookieOptions) => {
++      if (typeof nameOrOptions === "string") {
++        response.cookies.set(nameOrOptions, value, options);
++      } else {
++        response.cookies.set(nameOrOptions.name, nameOrOptions.value, nameOrOptions);
++      }
++    },
++    delete: (nameOrOptions: any, options?: CookieOptions) => {
++      if (typeof nameOrOptions === "string") {
++        response.cookies.set(nameOrOptions, "", { ...options, maxAge: 0 });
++      } else {
++        response.cookies.set(nameOrOptions.name, "", { ...nameOrOptions, maxAge: 0 });
++      }
++    }
++  };
++  
++  // Update session & cookies
++  const result = await updateSession({
++    requestCookies,
++    responseCookies
++  });
++
++  const isAuthenticated = !!result.accessToken;
++
++  // Protected routes matcher
++  const isProtectedRoute = 
++    pathname.startsWith("/dashboard") ||
++    pathname.startsWith("/profile") ||
++    pathname.startsWith("/find-jobs");
++
++  if (isProtectedRoute && !isAuthenticated) {
++    // Redirect to login page
++    const loginUrl = new URL("/login", request.url);
++    loginUrl.searchParams.set("redirect", pathname);
++    return NextResponse.redirect(loginUrl);
++  }
++
++  // Redirect to dashboard if logged-in user visits login page
++  if (pathname === "/login" && isAuthenticated) {
++    return NextResponse.redirect(new URL("/dashboard", request.url));
++  }
++
++  return response;
++}
++
++export const config = {
++  matcher: [
++    "/dashboard/:path*",
++    "/profile/:path*",
++    "/find-jobs/:path*",
++    "/login"
++  ],
++};

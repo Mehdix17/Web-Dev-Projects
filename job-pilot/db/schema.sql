@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     location TEXT,
     current_title TEXT,
     experience_level TEXT,
-    years_experience INTEGER,
+    years_experience NUMERIC,
     skills TEXT[] DEFAULT '{}',
     industries TEXT[] DEFAULT '{}',
     work_experience JSONB DEFAULT '[]',
